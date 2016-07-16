@@ -1,0 +1,207 @@
+body{
+background-color: black;
+font-size:100%;
+font-family:Arial, Sans-serif;
+}
+
+div.setupPage{
+background-color: white;
+padding: 20px 50px;
+}
+
+div.setupTable, div.preDef{
+display: inline-block;
+vertical-align: top;
+padding: 20px 25px;
+}
+
+div.setupPage table{
+text-align: center;
+vertical-align: middle;
+border: 0px;
+margin: 0px;
+}
+
+div.setupPage table caption{
+font-size: 30px;
+text-shadow: 0px 1px 3px #000;
+font-family: 'Freight Sans Bold';
+font-weight: normal !important;
+margin-bottom: 15px;
+}
+
+div.setupPage table tr td{
+min-width: 40px;
+height: 35px;
+padding: 0px 15px 0px 15px;
+margin: 0px;
+border: 0px;
+}
+
+div.setupPage table td input[type="text"]{
+width: 100%;
+height: 32px;
+font-size: 15px;
+direction: ltr;
+margin: 0;
+padding: 0 8px;
+background: #fff;
+border: 1px solid #d9d9d9;
+border-top: 1px solid #c0c0c0;
+}
+
+div.setupPage table tfoot input[type="checkbox"]{
+width: 13px;
+height: 13px;
+cursor: pointer;
+padding: 1px 5px;
+margin:  1px 8px;
+background: #fff;
+border: 1px solid #dcdcdc;
+}
+
+div.setupPage table tfoot input[type="checkbox"]:hover{
+border-color: #c6c6c6;
+-webkit-box-shadow: inset 0 1px 1px rgba(0,0,0,0.1);
+-moz-box-shadow: inset 0 1px 1px rgba(0,0,0,0.1);
+box-shadow: inset 0 1px 1px rgba(0,0,0,0.1);
+}
+
+div.setupPage table tbody tr:hover{
+background-color: rgb(213, 213, 213);
+}
+
+div.addBtn, div.removeBtn, div.saveBtn, div.loadBtn, div.setupPage table td input.playBtn, input.playBtn, div.setupBtn, div.fullKBBtn{
+cursor: pointer;
+display: -moz-inline-box;
+display: inline-block;
+background-repeat: no-repeat;
+vertical-align: middle;
+border: 0px;
+border-width: 0px;
+background-size: 32px 32px;
+width: 32px;
+height: 32px;
+}
+
+div.addBtn{
+background-image: url("img/add.png");
+}
+
+div.removeBtn{
+background-image: url("img/remove.png");
+}
+
+div.saveBtn{
+margin: 5px;
+padding: 4px;
+background-position: 4px 4px;
+background-image: url("img/save.png");
+background-size: 64px 64px;
+width: 64px;
+height: 64px;
+}
+
+div.setupPage table td input.playBtn, input.playBtn{
+background-color:white;
+margin: 5px;
+padding: 4px;
+background-image: url("img/play.png");
+background-size: 64px 64px;
+width: 64px;
+height: 64px;
+}
+
+div.setupBtn{
+background-position: 50%;
+background-origin: content-box;
+clear: both;
+float: none;
+width: 100%;
+padding: 10px 0px;
+margin: 50px auto;background-image: url("img/setup.png");
+background-color: rgba(128, 128, 128, 0);
+}
+
+div.setupBtn:hover{
+background-color: rgba(128, 128, 128, 10);
+}
+
+div.loadBtn{
+margin: 1px;
+padding: 1px;
+background-image: url("img/load.png");
+background-size: 100px 100px;
+width: 100px;
+height: 100px;
+}
+
+div.fullKBBtn{
+margin: 1px;
+padding: 1px;
+background-image: url("img/fkb.png");
+background-size: 100px 100px;
+width: 100px;
+height: 100px;
+}
+
+div.saveBtn:active, div.loadBtn:active, div.fullKBBtn:active{
+background-color: rgb(255, 247, 45);
+}
+
+/* Stimulator */
+div.fboxcontainer{
+padding: 1px 5px;
+clear: none;
+float: left;
+}
+
+div.fbox{
+width: 100%;
+height: 100%;
+background-color: white;
+color: black;
+text-align: center;
+vertical-align: middle;
+text-decoration:none;
+line-height:150px;
+font-style:normal;
+font-size:50px;
+font-weight:normal;
+display: block;
+clear: both;
+}
+
+div.fboxdata{
+margin: 0px 0px;
+width: 100%;
+background-color: white;
+color: black;
+display: block;
+clear: both;
+border: 1px solid black;
+position: relative;
+z-index:2;
+}
+
+div.fboxopts{
+width: 100%;
+clear: both;
+}
+
+div.fboxopts input{
+width: 100%;
+}
+
+div.versionInfo{
+margin: 20px 0px 0px 0px;
+padding: 2px;
+border: none;
+background: rgb(241, 231, 231);
+font-size:0.5em;
+text-align: center;
+}
+
+.displayNone{
+display: none;
+}
