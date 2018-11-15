@@ -5,7 +5,7 @@ if (workbox) {
   
   workbox.routing.registerRoute(
     // Cache static files
-    './',
+    '/quickssvep',
     // Use cache but update in the background ASAP
     workbox.strategies.networkFirst({
       // Use a custom cache name
