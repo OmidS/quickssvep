@@ -6,4 +6,4 @@ Quick SSVEP is a web-based application that provides easy to setup SSVEP (Steady
 
 Note: The performance of the stimulator (the exact frequency of stimulations) highly depends on the machine and the web browser running it. It is not intended for rigorous academic use, rather it is a fast solution to test simple SSVEP setups.
 
-In case you find Quick SSVEP useful and would like to cite it, please visit: https://zenodo.org/record/58053
+In case you find Quick SSVEP useful and would like to cite it, please visit: https://doi.org/10.5281/zenodo.595534
