@@ -219,7 +219,19 @@ function creatBoxes(boxInfos, options)
 				"switchTimes": fBox[fBoxId].switchTimes
 			};
 		}
-		localStorage.setItem('SSVEPLog', JSON.stringify(logObject));
+		let prevLog = localStorage['SSVEPLog'];
+		if (prevLog === undefined) {
+			prevLog = [];
+		} else {
+			prevLog = JSON.parse(prevLog);
+			if (prevLog.length === undefined){
+				let prevLogVal = prevLog;
+				prevLog = [];
+				prevLog.push(prevLogVal);
+			}
+		}
+		prevLog.push(logObject);
+		localStorage.setItem('SSVEPLog', JSON.stringify(prevLog));
 		fBox = new Array();
 		$("div.stimulator").empty();
 		$("div.stimulator").addClass("displayNone");
@@ -282,7 +294,8 @@ function setupStimulator(){
 		localStorage.setItem("JSSSVEPSetup", JSON.stringify(setupInfo));
 	});
 	$("div.setupPage").find(".dlLogBtn").click(function(){
-		saveTextToFile( localStorage['SSVEPLog'] );
+		let fileContent = JSON.stringify( JSON.parse(localStorage['SSVEPLog']), null, 2 );
+		saveTextToFile( fileContent );
 	});
 	$("div.setupPage").find(".loadBtn").click(function(){
 		var setupInfo = JSON.parse( localStorage["JSSSVEPSetup"]);
