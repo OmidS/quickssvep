@@ -251,10 +251,10 @@ function setupStimulator(){
 		}
 		
 		var setupInfo = {"ver": 1, "boxes": boxes, "boxOpts": boxOpts, "options": options};
-		$.cookie("JSSSVEPSetup", JSON.stringify(setupInfo), {expires: 3650});
+		localStorage.setItem("JSSSVEPSetup", JSON.stringify(setupInfo));
 	});
 	$("div.setupPage").find(".loadBtn").click(function(){
-		var setupInfo = JSON.parse($.cookie("JSSSVEPSetup"));
+		var setupInfo = JSON.parse( localStorage["JSSSVEPSetup"]);
 		if (setupInfo===null) return;
 		if (setupInfo.ver != 1) return;
 		
