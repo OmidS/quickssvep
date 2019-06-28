@@ -71,7 +71,7 @@ div.setupPage table tbody tr:hover{
 background-color: rgb(213, 213, 213);
 }
 
-div.addBtn, div.removeBtn, div.saveBtn, div.loadBtn, div.setupPage table td input.playBtn, input.playBtn, div.setupBtn, div.fullKBBtn{
+div.addBtn, div.removeBtn, div.saveBtn, div.dlLogBtn, div.loadBtn, div.setupPage table td input.playBtn, input.playBtn, div.setupBtn, div.fullKBBtn{
 cursor: pointer;
 display: -moz-inline-box;
 display: inline-block;
@@ -100,6 +100,16 @@ background-image: url("img/save.png");
 background-size: 64px 64px;
 width: 64px;
 height: 64px;
+}
+
+div.dlLogBtn{
+    margin: 5px;
+    padding: 4px;
+    background-position: 4px 4px;
+    background-image: url("img/dl.png");
+    background-size: 64px 64px;
+    width: 64px;
+    height: 64px
 }
 
 div.setupPage table td input.playBtn, input.playBtn{

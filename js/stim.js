@@ -1,145 +1,156 @@
-function flickerBox(i, freq, txt, opts) {
-	var objectThis = this;
-	var id = i;
-	var text = txt;
-	var f = freq;
-	/* opts */
-	var fBackLoop = opts.fBackLoop;
-	var showInfo = opts.showInfo;
-	if (showInfo) var infos = opts.infos;
-	var showEdit = opts.showEdit;
-	var flickerText = opts.flickerText;
-	var trackFreq = (fBackLoop||showInfo); // We need to track momentary frequency if we want to have a frequency stablizer feedback loop or we simply want to sho it or both!
-	/* End of opts */
-	var minf = f;
-	var maxf = f;
-	var avgf = 0;
-	var cntf = 0;
-	var eHT = 1/f/2*1000; // expected half period in ms
-	var hT = 1/f/2*1000; // current half period in ms
-	/* PID Controller for Frequency */
-	var PID = {Kp: 0.5, Ki: 0, Kd: 0, P:0, I: 0, D: 0};
-	this.setFlickerInterval = function(newHalfT){
-		window.clearInterval(flickerIntervalID);
-		flickerIntervalID = window.setInterval(this.flicker,newHalfT);
-	}
-	this.changeFreq = function (newf) {
-		f = newf;
-		minf = f;
-		maxf = f;
-		avgf = 0;
-		cntf = 0;
-		eHT = 1/f/2*1000; // expected half period in ms
-	}
-	this.stop = function () {
-		window.clearInterval(flickerIntervalID);
-		if (showInfo) {
-			window.clearInterval(updateIntervalID);
+function saveTextToFile(text, fileName) {
+	const blob = new Blob([text], {type: 'text/plain;charset=utf-8'});
+	if (!fileName) { fileName = 'export.json'; }
+	saveAs(blob, fileName);
+}
+class flickerBox { 
+	constructor(i, freq, txt, opts){
+		this.id = i;
+		this.text = txt;
+		this.f = freq;
+		/* opts */
+		this.fBackLoop = opts.fBackLoop;
+		this.showInfo = opts.showInfo;
+		if (this.showInfo) this.infos = opts.infos;
+		this.showEdit = opts.showEdit;
+		this.flickerText = opts.flickerText;
+		this.trackFreq = (this.fBackLoop||this.showInfo); // We need to track momentary frequency if we want to have a frequency stablizer feedback loop or we simply want to sho it or both!
+		/* End of opts */
+		this.minf = this.f;
+		this.maxf = this.f;
+		this.avgf = 0;
+		this.cntf = 0;
+		this.eHT = 1/this.f/2*1000; // expected half period in ms
+		this.hT = 1/this.f/2*1000; // current half period in ms
+		/* PID Controller for Frequency */
+		this.PID = {Kp: 0.5, Ki: 0, Kd: 0, P:0, I: 0, D: 0};
+
+		this.creatDOM();
+		this.contdiv = $("div#"+this.id)[0]; 
+		this.squarediv = $(this.contdiv).children("div.fbox")[0]; 
+		if (this.showInfo){
+			this.datadiv = $(this.contdiv).children("div.fboxdata")[0];
+		}
+		if (this.showEdit){
+			this.optsdiv = $(this.contdiv).children("div.fboxopts")[0];
+			this.optsdivinp = $(this.optsdiv).children("input")[0];
+		}
+
+		// Things to do on first setup
+		if (this.trackFreq) {
+			this.t1 = new Date().getTime();
+			this.t2 = new Date().getTime();
+			this.t3 = new Date().getTime();
+		}
+		this.switchTimes = [];
+		if (this.flickerText==true) this.squarediv.style.backgroundColor = "black";
+		else this.squarediv.style.backgroundColor = "white";
+		this.flickerIntervalID = setTimeout(() => { this.flicker() },this.hT);
+		if (this.showInfo) {
+			this.updateIntervalID = window.setInterval( () => { this.resetminmax() },60000);
 		}
 	}
-	this.updateFreq = function() {
-		newf = $(optsdiv).children("input").val();
+	setFlickerInterval = function(newHalfT) {
+		window.clearInterval(this.flickerIntervalID);
+		this.flickerIntervalID = window.setInterval(this.flicker,newHalfT);
+	}
+	changeFreq = function(newf) {
+		this.f = newf;
+		this.minf = this.f;
+		this.maxf = this.f;
+		this.avgf = 0;
+		this.cntf = 0;
+		this.eHT = 1/this.f/2*1000; // expected half period in ms
+	}
+	stop = function() {
+		window.clearInterval(this.flickerIntervalID);
+		if (this.showInfo) {
+			window.clearInterval(this.updateIntervalID);
+		}
+	}
+	updateFreq = function() {
+		newf = $(this.optsdiv).children("input").val();
 		this.changeFreq(newf);
 	}
-	this.creatDOM = function() {
+	creatDOM = function() {
 		var fboxcontainerdiv = document.createElement('div');
 		fboxcontainerdiv.className = 'fboxcontainer';
-		fboxcontainerdiv.setAttribute('id', id);
+		fboxcontainerdiv.setAttribute('id', this.id);
 		var fboxdiv = document.createElement('div');
 		fboxdiv.className = 'fbox';
-		fboxdiv.innerHTML = text;
+		fboxdiv.innerHTML = this.text;
 		var fboxdatadiv = document.createElement('div');
 		fboxdatadiv.className = 'fboxdata';
 		var fboxoptsdiv = document.createElement('div');
 		var fboxoptsdiv = document.createElement('div');
 		var fboxoptsdiv = document.createElement('div');
 		var fboxoptsdivinp = document.createElement('input');
-		fboxoptsdivinp.value = f;
+		fboxoptsdivinp.value = this.f;
 		fboxoptsdiv.className = 'fboxopts';	
 		fboxoptsdiv.appendChild(fboxoptsdivinp);
 		fboxcontainerdiv.appendChild(fboxdiv);
-		if (showInfo) fboxcontainerdiv.appendChild(fboxdatadiv);
-		if (showEdit) fboxcontainerdiv.appendChild(fboxoptsdiv);
+		if (this.showInfo) fboxcontainerdiv.appendChild(fboxdatadiv);
+		if (this.showEdit) fboxcontainerdiv.appendChild(fboxoptsdiv);
 		var stimulatordiv = $("div.stimulator")[0];
 		stimulatordiv.appendChild(fboxcontainerdiv);
 	}
-	this.creatDOM();
-	var contdiv = $("div#"+id)[0]; 
-	var squarediv = $(contdiv).children("div.fbox")[0]; 
-    if (showInfo){
-		var datadiv = $(contdiv).children("div.fboxdata")[0];
-	}
-    if (showEdit){
-		var optsdiv = $(contdiv).children("div.fboxopts")[0];
-		var optsdivinp = $(optsdiv).children("input")[0];
-	}
-	this.resetminmax = function (){
-		minf = f;
-		maxf = f;
-		avgf = 0;
-		cntf = 0;
+	
+	resetminmax = function() {
+		this.minf = this.f;
+		this.maxf = this.f;
+		this.avgf = 0;
+		this.cntf = 0;
 	}  
-	this.flicker = function() {
-		if (flickerText==true) colorProperty = squarediv.style.color;
-		else colorProperty = squarediv.style.backgroundColor;
+	flicker = function() {
+		let colorProperty;
+		if (this.flickerText==true) colorProperty = this.squarediv.style.color;
+		else colorProperty = this.squarediv.style.backgroundColor;
 		if (colorProperty!="white") {
 			colorProperty = "white";
-			if (trackFreq) {
-				t3 = new Date().getTime();
-				if (showInfo) {
-					cf = 1000/(t3-t1); if (cf>maxf) maxf = cf; if (cf<minf) minf = cf;
-					avgf = (avgf*cntf + cf) / (cntf+1); cntf++;
-					if (!isFinite(avgf)) {minf = f;maxf = f;avgf = 0;cntf = 0;}
+			if (this.trackFreq) {
+				this.t3 = new Date().getTime();
+				if (this.showInfo) {
+					var cf = 1000/(this.t3-this.t1); if (cf>this.maxf) this.maxf = cf; if (cf<this.minf) this.minf = cf;
+					this.avgf = (this.avgf*this.cntf + cf) / (this.cntf+1); this.cntf++;
+					if (!isFinite(this.avgf)) {this.minf = this.f;this.maxf = this.f;this.avgf = 0;this.cntf = 0;}
 					var infoHTML = "";
-					if (infos.curF) infoHTML += 'Freq: '+cf.toFixed(2)+'Hz<br />';
+					if (this.infos.curF) infoHTML += 'Freq: '+cf.toFixed(2)+'Hz<br />';
 					//infoHTML += '(Goal: '+f+'Hz) ';
 					//infoHTML += '(Freq: '+cf.toFixed(2)+'Hz) ';
 					//infoHTML += '(Err: '+PID.P.toFixed(2)+'ms) ';
-					if (infos.avgF) infoHTML += 'Avg: '+avgf.toFixed(2)+'Hz<br />';
-					if (infos.rangeF) infoHTML += 'Range: '+minf.toFixed(2)+' <  f  < '+maxf.toFixed(2)+'<br />';
-					if (infos.curPer) infoHTML += 'Period: '+(t3-t1)+'ms<br />';
-					if (infos.curDuty) infoHTML += 'Duty: '+((t2-t1)/(t3-t1)*100).toFixed(2)+'%';
-					datadiv.innerHTML = infoHTML;
+					if (this.infos.avgF) infoHTML += 'Avg: '+this.avgf.toFixed(2)+'Hz<br />';
+					if (this.infos.rangeF) infoHTML += 'Range: '+this.minf.toFixed(2)+' <  f  < '+this.maxf.toFixed(2)+'<br />';
+					if (this.infos.curPer) infoHTML += 'Period: '+(this.t3-this.t1)+'ms<br />';
+					if (this.infos.curDuty) infoHTML += 'Duty: '+((this.t2-this.t1)/(this.t3-this.t1)*100).toFixed(2)+'%';
+					this.datadiv.innerHTML = infoHTML;
 				}
-				if (fBackLoop) { // Here we implement a feedback to finetune frequency
-					var lastError = PID.P;
-					var dt = (t3-t1)/1000;
-					var cHT = (t3-t1)/2; // current half period in ms
-					var error = eHT - cHT;
-					PID.P = error;
-					PID.I += error * dt;
-					if (dt>0) PID.D = (error - lastError) / dt;
-					else PID.D = 0;
-					hT += (PID.Kp * PID.P + PID.Ki * PID.I + PID.Kd * PID.D);
-					if (hT <= 0) hT = eHT;
+				if (this.fBackLoop) { // Here we implement a feedback to finetune frequency
+					var lastError = this.PID.P;
+					var dt = (this.t3-this.t1)/1000;
+					var cHT = (this.t3-this.t1)/2; // current half period in ms
+					var error = this.eHT - cHT;
+					this.PID.P = error;
+					this.PID.I += error * dt;
+					if (dt>0) this.PID.D = (error - lastError) / dt;
+					else this.PID.D = 0;
+					this.hT += (this.PID.Kp * this.PID.P + this.PID.Ki * this.PID.I + this.PID.Kd * this.PID.D);
+					if (this.hT <= 0) this.hT = this.eHT;
 					//if ( (error > (ehT*0.01)) || (error < (-ehT*0.01) ) ) this.setFlickerInterval(chT - 0.01*error);
 					//if ( (error > (ehT*0.01)) || (error < (-ehT*0.01) ) ) hT = chT - 0.01*error;
 					//hT = cHT - 0.9*error;
 					//if ( (chT-ehT) > (+ehT*0.001) ) resetFlickerInterval(flickerInterval, hT, flickerFunction);
 					//if ( (chT-ehT) < (-ehT*0.001) ) resetFlickerInterval(flickerInterval, hT, flickerFunction);
 				}
-				t1 = new Date().getTime();
+				this.t1 = new Date().getTime();
 			}
 		}else{
 			colorProperty="black";
-			if (trackFreq) t2 = new Date().getTime();
+			if (this.trackFreq) this.t2 = new Date().getTime();
 		}
-		if (flickerText==true) squarediv.style.color = colorProperty;
-		else squarediv.style.backgroundColor = colorProperty;
-		flickerIntervalID = setTimeout(flickerFunction,hT);
-	}
-	// Things to do on first setup
-	if (trackFreq) {
-		var t1 = new Date().getTime();
-		var t2 = new Date().getTime();
-		var t3 = new Date().getTime();
-	}
-	if (flickerText==true) squarediv.style.backgroundColor = "black";
-	else squarediv.style.backgroundColor = "white";
-	var flickerFunction = this.flicker;
-	var flickerIntervalID = setTimeout(flickerFunction,hT);
-	if (showInfo) {
-		var updateIntervalID = window.setInterval(this.resetminmax,60000);
+		if (this.flickerText==true) this.squarediv.style.color = colorProperty;
+		else this.squarediv.style.backgroundColor = colorProperty;
+		this.switchTimes.push( new Date() );
+		this.flickerIntervalID = setTimeout( ()=> { this.flicker(); },this.hT);
 	}
 }
 
@@ -188,10 +199,14 @@ function creatBoxes(boxInfos, options)
 	//setTimeout(fixStyle, 1000);
 	$("div.stimulator").append('<div class="setupBtn"></div>');
 	$("div.setupBtn").click(function(){
-		$("div.fboxcontainer").each(function(){
-			var fBoxId = $(this).attr("id");
+		var boxElems = Array.from( document.querySelectorAll('div.fboxcontainer') );
+		var allTimes = {};
+		for (let i = 0; i<boxElems.length; i++){
+			let fBoxId = boxElems[i].getAttribute('id');
 			fBox[fBoxId].stop();
-		});
+			allTimes[fBoxId] = fBox[fBoxId].switchTimes;
+		}
+		localStorage.setItem('SSVEPLog', JSON.stringify(allTimes));
 		fBox = new Array();
 		$("div.stimulator").empty();
 		$("div.stimulator").addClass("displayNone");
@@ -203,7 +218,7 @@ function setupStimulator(){
 	if (typeof boxesCount==="undefined") boxesCount = 6;
 	var footerHTML = '<div>Note: The performance of this stimulator (the exact frequency of stimulations) highly depends on the machine and the web browser running it. It is not intended for academic use, rather it is a fast solution to test simple SSVEP setups. We sugest the latest version of <a href="https://www.google.com/intl/en/chrome/browser/">Google Chrome</a> for the best performance.</div>';
 	footerHTML += '<div class="versionInfo">JS SSVEP Stimulator version 2014.01.01 - By Omid Sani</div>';
-	var createHTML = '<table><caption>Setup an SSVEP stimulator</caption><thead><tr><th>#</th><th>Frequency</th><th>Text</th><th></th></tr></thead><tbody></tbody><tfoot><tr><td></td><td></td><td></td><td><div class="addBtn"></div></td></tr><tr><td></td><td>Font Size: <select name="fontS"><option value="100" selected="selected">100%</option><option value="50">50%</option></select></td><td><input type="checkbox" name="fBackLoop" checked="checked">Feedback Control Loop<br /><input type="checkbox" name="avgF">Show Averages</td></td><td></td></tr><tr><td></td><td><input type="checkbox" name="fontB" checked="checked">Bold Font</td><td><input type="radio" name="flickerer" value="text" checked="checked">Flicker Texts<br/><input type="radio" name="flickerer" value="box">Flicker Boxes</td></tr><tr><td></td><td><input type="submit" name="submit" value="" class="playBtn"><br/>Run</td><td><div class="saveBtn"></div><br/>Save This Setup</td><td></td></tr></tfoot></table>';
+	var createHTML = '<table><caption>Setup an SSVEP stimulator</caption><thead><tr><th>#</th><th>Frequency</th><th>Text</th><th></th></tr></thead><tbody></tbody><tfoot><tr><td></td><td></td><td></td><td><div class="addBtn"></div></td></tr><tr><td></td><td>Font Size: <select name="fontS"><option value="100" selected="selected">100%</option><option value="50">50%</option></select></td><td><input type="checkbox" name="fBackLoop" checked="checked">Feedback Control Loop<br /><input type="checkbox" name="avgF">Show Averages</td></td><td></td></tr><tr><td></td><td><input type="checkbox" name="fontB" checked="checked">Bold Font</td><td><input type="radio" name="flickerer" value="text" checked="checked">Flicker Texts<br/><input type="radio" name="flickerer" value="box">Flicker Boxes</td></tr><tr><td></td><td><input type="submit" name="submit" value="" class="playBtn"><br/>Run</td><td><div class="saveBtn"></div><br/>Save This Setup</td><td><div class="dlLogBtn"></div><br/>Download Log</td></tr></tfoot></table>';
 	var preDefHTML = '<table><caption>Predefined models</caption><tbody><tr><td><div class="loadBtn"></div><br/>Load</td></tr><tr><td><div class="fullKBBtn"></div><br/>Full KB</td></tr></tbody></table>';
 	$("div.setupPage").append('<form><div class="setupTable">'+createHTML+'</div><div class="preDef">'+preDefHTML+'</div></form><div>'+footerHTML+'</div>');
 	for (i=0; i<boxesCount; i++) {
@@ -252,6 +267,9 @@ function setupStimulator(){
 		
 		var setupInfo = {"ver": 1, "boxes": boxes, "boxOpts": boxOpts, "options": options};
 		localStorage.setItem("JSSSVEPSetup", JSON.stringify(setupInfo));
+	});
+	$("div.setupPage").find(".dlLogBtn").click(function(){
+		saveTextToFile( localStorage['SSVEPLog'] );
 	});
 	$("div.setupPage").find(".loadBtn").click(function(){
 		var setupInfo = JSON.parse( localStorage["JSSSVEPSetup"]);
