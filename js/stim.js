@@ -198,15 +198,28 @@ function creatBoxes(boxInfos, options)
 	fixStyle(options);
 	//setTimeout(fixStyle, 1000);
 	$("div.stimulator").append('<div class="setupBtn"></div>');
+	let startTime = new Date();
 	$("div.setupBtn").click(function(){
+		let stopTime = new Date();
 		var boxElems = Array.from( document.querySelectorAll('div.fboxcontainer') );
-		var allTimes = {};
+		var logObject = {
+			'runInfo': {
+				"startTime": startTime,
+				"stopTime": stopTime,
+				"boxCount": boxesCount
+			}
+		};
 		for (let i = 0; i<boxElems.length; i++){
 			let fBoxId = boxElems[i].getAttribute('id');
 			fBox[fBoxId].stop();
-			allTimes[fBoxId] = fBox[fBoxId].switchTimes;
+			logObject[fBoxId] = {
+				"text": fBox[fBoxId].text,
+				"f": fBox[fBoxId].f,
+				"flickerText": fBox[fBoxId].flickerText,
+				"switchTimes": fBox[fBoxId].switchTimes
+			};
 		}
-		localStorage.setItem('SSVEPLog', JSON.stringify(allTimes));
+		localStorage.setItem('SSVEPLog', JSON.stringify(logObject));
 		fBox = new Array();
 		$("div.stimulator").empty();
 		$("div.stimulator").addClass("displayNone");
