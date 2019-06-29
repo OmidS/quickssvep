@@ -243,7 +243,7 @@ function setupStimulator(){
 	if (typeof boxesCount==="undefined") boxesCount = 6;
 	var footerHTML = '<div>Note: The performance of this stimulator (the exact frequency of stimulations) highly depends on the machine and the web browser running it. It is not intended for academic use, rather it is a fast solution to test simple SSVEP setups. We sugest the latest version of <a href="https://www.google.com/intl/en/chrome/browser/">Google Chrome</a> for the best performance.</div>';
 	footerHTML += '<div class="versionInfo">Quick SSVEP - Last updated: 2019.06.28 - By <a href="https://omidsani.com"> Omid Sani</a></div>';
-	var createHTML = '<table><caption>Setup an SSVEP stimulator</caption><thead><tr><th>#</th><th>Frequency</th><th>Text</th><th></th></tr></thead><tbody></tbody><tfoot><tr><td></td><td></td><td></td><td><div class="addBtn"></div></td></tr><tr><td></td><td>Font Size: <select name="fontS"><option value="100" selected="selected">100%</option><option value="50">50%</option></select></td><td><input type="checkbox" name="fBackLoop" checked="checked">Feedback Control Loop<br /><input type="checkbox" name="avgF">Show Averages</td></td><td></td></tr><tr><td></td><td><input type="checkbox" name="fontB" checked="checked">Bold Font</td><td><input type="radio" name="flickerer" value="text" checked="checked">Flicker Texts<br/><input type="radio" name="flickerer" value="box">Flicker Boxes</td></tr><tr><td></td><td><input type="submit" name="submit" value="" class="playBtn"><br/>Run</td><td><div class="saveBtn"></div><br/>Save This Setup</td><td><div class="dlLogBtn"></div><br/>Download Log</td></tr></tfoot></table>';
+	var createHTML = '<table><caption>Setup an SSVEP stimulator</caption><thead><tr><th>#</th><th>Frequency</th><th>Text</th><th></th></tr></thead><tbody></tbody><tfoot><tr><td></td><td></td><td></td><td><div class="addBtn"></div></td></tr><tr><td></td><td>Font Size: <select name="fontS"><option value="100" selected="selected">100%</option><option value="50">50%</option></select></td><td><input type="checkbox" name="fBackLoop" checked="checked">Feedback Control Loop<br /><input type="checkbox" name="avgF">Show Averages</td></td><td></td></tr><tr><td></td><td><input type="checkbox" name="fontB" checked="checked">Bold Font</td><td><input type="radio" name="flickerer" value="text" checked="checked">Flicker Texts<br/><input type="radio" name="flickerer" value="box">Flicker Boxes</td></tr><tr><td></td><td><input type="submit" name="submit" value="" class="playBtn"><br/>Run</td><td><div class="saveBtn"></div><br/>Save This Setup</td><td><div class="dlLogBtn"></div><br/>Logs (<a class="wipeLogBtn" href="#">Delete</a>)</td></tr></tfoot></table>';
 	var preDefHTML = '<table><caption>Predefined models</caption><tbody><tr><td><div class="loadBtn"></div><br/>Load</td></tr><tr><td><div class="fullKBBtn"></div><br/>Full KB</td></tr></tbody></table>';
 	$("div.setupPage").append('<form><div class="setupTable">'+createHTML+'</div><div class="preDef">'+preDefHTML+'</div></form><div>'+footerHTML+'</div>');
 	for (i=0; i<boxesCount; i++) {
@@ -296,6 +296,16 @@ function setupStimulator(){
 	$("div.setupPage").find(".dlLogBtn").click(function(){
 		let fileContent = JSON.stringify( JSON.parse(localStorage['SSVEPLog']), null, 2 );
 		saveTextToFile( fileContent );
+	});
+	$("div.setupPage").find(".wipeLogBtn").click(function(){
+		let logsObj = JSON.parse(localStorage['SSVEPLog']);
+		if (logsObj.length > 0){
+			if (confirm('Are you sure you want to delete logs from '+logsObj.length+' run(s)?')){
+				localStorage['SSVEPLog'] = '[]';
+				console.log('Deleted '+ logsObj.length +' logs');
+			}
+		}
+		
 	});
 	$("div.setupPage").find(".loadBtn").click(function(){
 		var setupInfo = JSON.parse( localStorage["JSSSVEPSetup"]);
