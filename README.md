@@ -1,4 +1,4 @@
-Quick SSVEP
+# Quick SSVEP
 
 Use it at: https://omids.github.io/quickssvep/
 
