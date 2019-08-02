@@ -594,3 +594,5 @@ class SSVEP{
 		}
 	}
 }
+
+window.SSVEP = SSVEP;
