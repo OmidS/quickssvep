@@ -3,6 +3,26 @@ function saveTextToFile(text, fileName) {
 	if (!fileName) { fileName = 'export.json'; }
 	saveAs(blob, fileName);
 }
+
+class Storage {
+	constructor() {
+		
+	}
+	saveObject(key, obj){
+		localStorage[key] = JSON.stringify( obj )
+	}
+	loadObject(key, defaultObject){
+		let obj;
+		if (key in localStorage){
+			const objStr = localStorage[key];
+			obj = JSON.parse(objStr)
+		} else {
+			obj = defaultObject;
+		}
+		return obj;
+	}
+}
+
 class flickerBox { 
 	constructor(parentElem, i, freq, txt, opts){
 		this.parentElem = parentElem;
@@ -189,6 +209,8 @@ class flickerBox {
 
 class SSVEP{
 	constructor(parentElem){
+		this.logKey = 'SSVEPLog';
+		this.storage = new Storage();
 		this.running = false;
 
 		this.FPS = 60;
@@ -249,7 +271,7 @@ class SSVEP{
 		<a class="autoLinkBtn" href="#">Get auto link</a>
 		<input type="text" name="autolink" value="" placeholder="" style="display:none;">
 		</td>
-		<td><div class="dlLogBtn"></div><br/>Logs (<a class="wipeLogBtn" href="#">Delete</a>)</td>
+		<td><div class="dlLogBtn"></div><br/><span class="logCnt"></span>&nbsp;Log(s) (<a class="wipeLogBtn" href="#">Delete</a>)</td>
 		</tr></tfoot></table>`;
 		var preDefHTML = '<table><caption>Predefined models</caption><tbody><tr><td><div class="loadBtn"></div><br/>Load</td></tr><tr><td><div class="fullKBBtn"></div><br/>Full KB</td></tr></tbody></table>';
 
@@ -274,7 +296,7 @@ class SSVEP{
 			localStorage.setItem("JSSSVEPSetup", JSON.stringify(setupInfo));
 		});
 		$(this.setupUIElem).find(".dlLogBtn").click(()=>{
-			let fileContent = JSON.stringify( JSON.parse(localStorage['SSVEPLog']), null, 2 );
+			let fileContent = JSON.stringify( this.storage.loadObject(this.logKey, []), null, 2 );
 			saveTextToFile( fileContent );
 		});
 		$(this.setupUIElem).find(".autoLinkBtn").click((event)=>{
@@ -293,11 +315,12 @@ class SSVEP{
 		});
 		$(this.setupUIElem).find(".wipeLogBtn").click((event)=>{
 			event.preventDefault();
-			let logsObj = JSON.parse(localStorage['SSVEPLog']);
+			let logsObj = this.storage.loadObject(this.logKey, []);
 			if (logsObj.length > 0){
 				if (confirm('Are you sure you want to delete logs from '+logsObj.length+' run(s)?')){
-					localStorage['SSVEPLog'] = '[]';
+					this.storage.saveObject(this.logKey, []);
 					console.log('Deleted '+ logsObj.length +' logs');
+					this.updateLogCounts();
 				}
 			}
 		});
@@ -335,7 +358,16 @@ class SSVEP{
 		this.fBox = new Array();
 		$(this.stimUIElem).addClass("displayNone");
 		$(this.setupUIElem).removeClass("displayNone");		
+		this.updateLogCounts();
 		this.estimateRefreshRate();
+	}
+
+	updateLogCounts(){
+		const e = this.setupUIElem.querySelector('.logCnt');
+		if (e){
+			let logsObj = this.storage.loadObject(this.logKey, []);
+			e.innerHTML = logsObj.length;
+		}
 	}
 
 	loadSetupInfo(setupInfo){
@@ -542,6 +574,7 @@ class SSVEP{
 				"stopTime": this.stopTime,
 				"boxCount": this.boxesCount,
 				"eventTimesRelTo": this.eventTimesRelTo,
+				"eventTimesRelToTime": new Date(this.eventTimesRelTo*1000),
 				"FPS": this.FPS
 			}
 		};
@@ -554,19 +587,9 @@ class SSVEP{
 				"switchTimes": this.fBox[i].switchTimes
 			};
 		}
-		let prevLog = localStorage['SSVEPLog'];
-		if (prevLog === undefined) {
-			prevLog = [];
-		} else {
-			prevLog = JSON.parse(prevLog);
-			if (prevLog.length === undefined){
-				let prevLogVal = prevLog;
-				prevLog = [];
-				prevLog.push(prevLogVal);
-			}
-		}
+		let prevLog = this.storage.loadObject(this.logKey, []);
 		prevLog.push(logObject);
-		localStorage.setItem('SSVEPLog', JSON.stringify(prevLog));
+		this.storage.saveObject(this.logKey, prevLog);
 		$(this.stimUIElem).empty();
 		this.activateSetupPage();
 	}
