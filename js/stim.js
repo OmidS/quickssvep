@@ -308,7 +308,7 @@ function creatBoxes(boxInfos, options)
 function setupStimulator(){
 	if (typeof boxesCount==="undefined") boxesCount = 6;
 	var footerHTML = '<div>Note: The performance of this stimulator (the exact frequency of stimulations) highly depends on the machine and the web browser running it. It is not intended for academic use, rather it is a fast solution to test simple SSVEP setups. We sugest the latest version of <a href="https://www.google.com/intl/en/chrome/browser/">Google Chrome</a> for the best performance.</div>';
-	footerHTML += '<div class="versionInfo">Quick SSVEP - Last updated: 2019.08.01 - By <a href="https://omidsani.com"> Omid Sani</a></div>';
+	footerHTML += '<div class="versionInfo">Quick SSVEP - Last updated: 2019.08.01 - By <a href="https://omidsani.com"> Omid Sani</a> - Code: <a href="https://github.com/OmidS/quickssvep" target="_blank">GitHub</a></div>';
 	var createHTML = `<table><caption>Setup an SSVEP stimulator</caption><thead><tr><th>#</th><th>Frequency</th><th>Text</th><th></th></tr></thead><tbody></tbody>
 	<tfoot><tr><td></td><td></td><td></td><td><div class="addBtn"></div></td></tr><tr><td></td>
 	<td>Font Size: <select name="fontS"><option value="100" selected="selected">100%</option><option value="50">50%</option></select></td>
@@ -324,7 +324,10 @@ function setupStimulator(){
 	<td></td><td></td></tr>
 	<tr><td></td>
 	<td><input type="submit" name="submit" value="" class="playBtn"><br/>Run</td>
-	<td><div class="saveBtn"></div><br/>Save This Setup</td>
+	<td><div class="saveBtn"></div><br/>Save This Setup <br />
+	<a class="autoLinkBtn" href="#">Get auto link</a>
+	<input type="text" name="autolink" value="" placeholder="" style="display:none;">
+	</td>
 	<td><div class="dlLogBtn"></div><br/>Logs (<a class="wipeLogBtn" href="#">Delete</a>)</td>
 	</tr></tfoot></table>`;
 	var preDefHTML = '<table><caption>Predefined models</caption><tbody><tr><td><div class="loadBtn"></div><br/>Load</td></tr><tr><td><div class="fullKBBtn"></div><br/>Full KB</td></tr></tbody></table>';
@@ -342,7 +345,8 @@ function setupStimulator(){
 	$("div.setupPage").find(".removeBtn").click(function(){
 		$(this).parent("td").parent("tr").remove();		
 	});
-	$("div.setupPage").find(".saveBtn").click(function(){
+
+	function collectSetupInfo(){
 		var boxOpts = {"showInfo":false, "showEdit":false, "flickerText":false, "fBackLoop":false
 		, "infos":{"curF":true, "avgF":true, "rangeF":false, "curPer":false, "curDuty":false}};
 		
@@ -376,11 +380,28 @@ function setupStimulator(){
 		if (v){ options.duration = parseFloat( v.value ); }
 		
 		var setupInfo = {"ver": 1, "boxes": boxes, "boxOpts": boxOpts, "options": options};
+		return setupInfo;
+	}
+	$("div.setupPage").find(".saveBtn").click(function(){
+		const setupInfo = collectSetupInfo();
 		localStorage.setItem("JSSSVEPSetup", JSON.stringify(setupInfo));
 	});
 	$("div.setupPage").find(".dlLogBtn").click(function(){
 		let fileContent = JSON.stringify( JSON.parse(localStorage['SSVEPLog']), null, 2 );
 		saveTextToFile( fileContent );
+	});
+	$("div.setupPage").find(".autoLinkBtn").click(function(){
+		const setupInfo = collectSetupInfo();
+		const arg = encodeURIComponent(JSON.stringify(setupInfo));
+		var urlParams = new URLSearchParams(window.location.search);
+		urlParams.set('setup', arg);
+		const url = window.location.href.split('?')[0] + '?' + urlParams.toString();
+		const e = document.querySelector('div.setupPage tfoot input[name="autolink"]');
+		e.value = url;
+		e.style.display = 'block';
+		e.select();
+		document.execCommand("copy");
+		// document.querySelector('div.setupPage tfoot .autoLinkBtn').href = url;
 	});
 	$("div.setupPage").find(".wipeLogBtn").click(function(){
 		let logsObj = JSON.parse(localStorage['SSVEPLog']);
@@ -392,9 +413,9 @@ function setupStimulator(){
 		}
 		
 	});
-	$("div.setupPage").find(".loadBtn").click(function(){
-		var setupInfo = JSON.parse( localStorage["JSSSVEPSetup"]);
-		if (setupInfo===null) return;
+	
+	function loadSetupInfo(setupInfo){
+		if (setupInfo===undefined || setupInfo===null) return;
 		if (setupInfo.ver != 1) return;
 		
 		// Setup buttons
@@ -424,8 +445,12 @@ function setupStimulator(){
 		var fontSSelect = $("div.setupPage").find("tfoot").find('select[name="fontS"]')[0];
 		fontSSelect.selectedIndex = 0;
 		if (setupInfo.options.fontS == 0.5) fontSSelect.selectedIndex = 1;		
-	});
+	}
 	
+	$("div.setupPage").find(".loadBtn").click(function(){
+		var setupInfo = JSON.parse( localStorage["JSSSVEPSetup"]);
+		loadSetupInfo(setupInfo);
+	});
 
 	$("div.setupPage").find(".fullKBBtn").click(function(){
 		$("div.setupPage").find("div.setupTable").find("tbody").empty();
@@ -437,8 +462,8 @@ function setupStimulator(){
 			$(this).parent("td").parent("tr").remove();		
 		});			
 	});
-	$("div.setupPage").find("form").submit(function(event) {
-		event.preventDefault();
+
+	startRun = function() {
 		$("div.setupPage").addClass('displayNone');
 		
 		var boxOpts = {"showInfo":false, "showEdit":false, "flickerText":false, "fBackLoop":false
@@ -477,7 +502,24 @@ function setupStimulator(){
 		creatBoxes(boxes, options);
 		
 		return false;
+	}
+	
+	$("div.setupPage").find("form").submit(function(event) {
+		event.preventDefault();
+		startRun();
 	});
+
+	// Check window url for initial setup
+	var urlParams = new URLSearchParams(window.location.search);
+	if (urlParams.has('setup')){ // Setup info provided
+		const setupInfo = collectSetupInfo(); // Defaults
+		const urlSetupInfo = JSON.parse(decodeURIComponent(urlParams.get('setup')));
+		for (let k of Object.keys(urlSetupInfo)){
+			urlSetupInfo[k] = urlSetupInfo[k];
+		}
+		loadSetupInfo(urlSetupInfo);
+		startRun();
+	}
 }
 
 // Store the function in a global property referenced by a string -> Good for minifying
