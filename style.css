@@ -217,7 +217,7 @@ background-color: white;
 color: black;
 display: block;
 clear: both;
-border: 1px solid black;
+border: 0px solid black;
 position: relative;
 z-index:2;
 }
