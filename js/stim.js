@@ -291,7 +291,8 @@ class SSVEP{
 			document.execCommand("copy");
 			// document.querySelector('div.setupPage tfoot .autoLinkBtn').href = url;
 		});
-		$(this.setupUIElem).find(".wipeLogBtn").click(()=>{
+		$(this.setupUIElem).find(".wipeLogBtn").click((event)=>{
+			event.preventDefault();
 			let logsObj = JSON.parse(localStorage['SSVEPLog']);
 			if (logsObj.length > 0){
 				if (confirm('Are you sure you want to delete logs from '+logsObj.length+' run(s)?')){
