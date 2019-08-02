@@ -23,6 +23,17 @@ class Storage {
 	}
 }
 
+class MessageHandler {
+	constructor() {
+
+	}
+	postMessage(msg){
+		if (window.parent){
+			window.parent.postMessage(msg, '*');
+		}
+	}
+}
+
 class flickerBox { 
 	constructor(parentElem, i, freq, txt, opts){
 		this.parentElem = parentElem;
@@ -212,6 +223,8 @@ class SSVEP{
 		this.logKey = 'SSVEPLog';
 		this.storage = new Storage();
 		this.running = false;
+
+		this.messenger = new MessageHandler();
 
 		this.FPS = 60;
 		this.boxesCount = 6;
@@ -542,6 +555,7 @@ class SSVEP{
 		window.scrollTo(0, 0);
 	
 		$("div.setupBtn").click( ()=>{ this.stopStimulation(); });
+		this.messenger.postMessage('runStarted');
 	
 		this.startTime = new Date();
 		this.stopTime = null;
@@ -591,6 +605,7 @@ class SSVEP{
 		prevLog.push(logObject);
 		this.storage.saveObject(this.logKey, prevLog);
 		$(this.stimUIElem).empty();
+		this.messenger.postMessage('runStopped');
 		this.activateSetupPage();
 	}
 
