@@ -595,4 +595,5 @@ class SSVEP{
 	}
 }
 
-window.SSVEP = SSVEP;
+// Store the SSVEP class in a global property referenced by a string -> Good for minifying
+window['SSVEP'] = SSVEP;
