@@ -226,3 +226,7 @@ text-align: center;
 .displayNone{
 display: none;
 }
+
+.fRateEst{
+    margin: 0.5em 0;
+}

@@ -25,7 +25,7 @@ class flickerBox {
 		/* PID Controller for Frequency */
 		this.PID = {Kp: 0.5, Ki: 0, Kd: 0, P:0, I: 0, D: 0};
 
-		this.creatDOM();
+		this.createDOM();
 		this.contdiv = $("div#"+this.id)[0]; 
 		this.squarediv = $(this.contdiv).children("div.fbox")[0]; 
 		if (this.showInfo){
@@ -83,7 +83,7 @@ class flickerBox {
 		newf = $(this.optsdiv).children("input").val();
 		this.changeFreq(newf);
 	}
-	creatDOM = function() {
+	createDOM = function() {
 		var fboxcontainerdiv = document.createElement('div');
 		fboxcontainerdiv.className = 'fboxcontainer';
 		fboxcontainerdiv.setAttribute('id', this.id);
@@ -120,13 +120,13 @@ class flickerBox {
 				this.avgf = (this.avgf*this.cntf + cf) / (this.cntf+1); this.cntf++;
 				if (!isFinite(this.avgf)) {this.minf = this.f;this.maxf = this.f;this.avgf = 0;this.cntf = 0;}
 				var infoHTML = "";
-				if (this.infos.curF) infoHTML += 'Freq: '+cf.toFixed(2)+'Hz<br />';
+				if (this.infos.curF) infoHTML += 'Freq: '+cf.toFixed(2)+'Hz&nbsp;';
 				//infoHTML += '(Goal: '+f+'Hz) ';
 				//infoHTML += '(Freq: '+cf.toFixed(2)+'Hz) ';
 				//infoHTML += '(Err: '+PID.P.toFixed(2)+'ms) ';
-				if (this.infos.avgF) infoHTML += 'Avg: '+this.avgf.toFixed(2)+'Hz<br />';
-				if (this.infos.rangeF) infoHTML += 'Range: '+this.minf.toFixed(2)+' <  f  < '+this.maxf.toFixed(2)+'<br />';
-				if (this.infos.curPer) infoHTML += 'Period: '+(this.t3-this.t1)+'ms<br />';
+				if (this.infos.avgF) infoHTML += 'Avg: '+this.avgf.toFixed(2)+'Hz&nbsp;';
+				if (this.infos.rangeF) infoHTML += 'Range: '+this.minf.toFixed(2)+' <  f  < '+this.maxf.toFixed(2)+'&nbsp;';
+				if (this.infos.curPer) infoHTML += 'Period: '+(this.t3-this.t1)+'ms&nbsp;';
 				if (this.infos.curDuty) infoHTML += 'Duty: '+((this.t2-this.t1)/(this.t3-this.t1)*100).toFixed(2)+'%';
 				this.datadiv.innerHTML = infoHTML;
 			}
@@ -217,8 +217,8 @@ function fixStyle(options){
 	*/
 }
 
-function creatBoxes(boxInfos, options)
-{
+let updateRefRateEst = true;
+function createBoxes(boxInfos, options) {
 	$("div.stimulator").removeClass('displayNone');
 	// Creating some flicker boxes
 	var fBox = new Array();
@@ -238,6 +238,7 @@ function creatBoxes(boxInfos, options)
 	}
 	window.onresize = onWinResize;
 	fixStyle(options);
+	window.scrollTo(0, 0);
 
 	let startTime = new Date();
 	let stopTime = null;
@@ -280,6 +281,7 @@ function creatBoxes(boxInfos, options)
 		$("div.stimulator").empty();
 		$("div.stimulator").addClass("displayNone");
 		$("div.setupPage").removeClass("displayNone");		
+		updateRefRateEst = true;
 		window.removeEventListener('onresize', onWinResize);
 	}
 	$("div.setupBtn").click(stopStimulation);
@@ -306,11 +308,16 @@ function creatBoxes(boxInfos, options)
 }
 
 function setupStimulator(){
+	let FPS = 60;
 	if (typeof boxesCount==="undefined") boxesCount = 6;
-	var footerHTML = '<div>Note: The performance of this stimulator (the exact frequency of stimulations) highly depends on the machine and the web browser running it. It is not intended for academic use, rather it is a fast solution to test simple SSVEP setups. We sugest the latest version of <a href="https://www.google.com/intl/en/chrome/browser/">Google Chrome</a> for the best performance.</div>';
+	var footerHTML = `
+	<div class="fRateEst"></div>
+	<div class="warning">Note: The performance of this stimulator (the exact frequency of stimulations) highly depends on the machine and the web browser running it. It is not intended for academic use, rather it is a fast solution to test simple SSVEP setups. We sugest the latest version of <a href="https://www.google.com/intl/en/chrome/browser/">Google Chrome</a> for the best performance.</div>`;
 	footerHTML += '<div class="versionInfo">Quick SSVEP - Last updated: 2019.08.01 - By <a href="https://omidsani.com"> Omid Sani</a> - Code: <a href="https://github.com/OmidS/quickssvep" target="_blank">GitHub</a></div>';
 	var createHTML = `<table><caption>Setup an SSVEP stimulator</caption><thead><tr><th>#</th><th>Frequency</th><th>Text</th><th></th></tr></thead><tbody></tbody>
-	<tfoot><tr><td></td><td></td><td></td><td><div class="addBtn"></div></td></tr><tr><td></td>
+	<tfoot><tr><td></td><td></td><td></td><td><div class="addBtn"></div></td></tr>
+	<tr><td></td><td>Columns</td><td><input type="text" name="columns" value="3" placeholder="Columns"></td><td></td></tr>
+	<tr><td></td>
 	<td>Font Size: <select name="fontS"><option value="100" selected="selected">100%</option><option value="50">50%</option></select></td>
 	<td>
 	<!--<input type="checkbox" name="fBackLoop" checked="checked">Feedback Control Loop<br />-->
@@ -346,6 +353,37 @@ function setupStimulator(){
 		$(this).parent("td").parent("tr").remove();		
 	});
 
+	function estimateRefreshRate(){
+		finalFrameCnt = 601;
+		totalFrameInd = 0;
+		histFrameCnt = 61;
+		histCnt = 0;
+		firstFrameTime = null;
+		requestFrame = function(cTime){
+			totalFrameInd++;
+			histCnt++;
+			if (histCnt == 1) { firstFrameTime = cTime; };
+			if (histCnt == histFrameCnt) {
+				const FPSEst = (histCnt-1)/(cTime-firstFrameTime)*1000;
+				console.log('[QuickSSVEP] Estimated framerate (Hz): ' + (histCnt-1) + ' frames in '+(cTime-firstFrameTime)+'ms => ' + FPSEst.toFixed(3) + ' FPS');
+				let reportStr = 'Estimated FPS: ' + FPSEst.toFixed(2) + ' → Reliable frequencies: ';
+				let freqs = [];
+				for (let i = 1; i<(0.5*(1+FPSEst)); i++){
+					freqs.push( (FPSEst/i/2).toFixed(2) + '' );
+				}
+				reportStr += freqs.join(', ');
+				const e = document.querySelector('.fRateEst');
+				e.innerHTML = reportStr;
+				histCnt = 0;
+			}
+			if (updateRefRateEst && totalFrameInd < finalFrameCnt){
+				window.requestAnimationFrame(requestFrame);
+			}
+		}
+		// Start animation
+		window.requestAnimationFrame(requestFrame);
+	}
+
 	function collectSetupInfo(){
 		var boxOpts = {"showInfo":false, "showEdit":false, "flickerText":false, "fBackLoop":false
 		, "infos":{"curF":true, "avgF":true, "rangeF":false, "curPer":false, "curDuty":false}};
@@ -378,6 +416,9 @@ function setupStimulator(){
 		}
 		const v = document.querySelector('div.setupPage tfoot input[name="duration"]');
 		if (v){ options.duration = parseFloat( v.value ); }
+		
+		const e = document.querySelector('div.setupPage tfoot input[name="columns"]');
+		if (e){ options.cols = parseInt( e.value ); }
 		
 		var setupInfo = {"ver": 1, "boxes": boxes, "boxOpts": boxOpts, "options": options};
 		return setupInfo;
@@ -441,6 +482,7 @@ function setupStimulator(){
 			const v = document.querySelector('div.setupPage tfoot input[name="duration"]');
 			v.value = setupInfo.options.duration;
 		}
+		document.querySelector('div.setupPage tfoot input[name="columns"]').value = options.cols;
 		
 		var fontSSelect = $("div.setupPage").find("tfoot").find('select[name="fontS"]')[0];
 		fontSSelect.selectedIndex = 0;
@@ -456,14 +498,16 @@ function setupStimulator(){
 		$("div.setupPage").find("div.setupTable").find("tbody").empty();
 		boxesCount = 26;
 		for (i=0; i<boxesCount; i++) {
-			$("div.setupPage").find("div.setupTable").find("tbody").append('<tr><td>'+(i+1)+'</td><td><input type="text" name="freq" value="'+((12+i)/2).toFixed(1)+'"></td><td><input type="text" name="text" value="'+String.fromCharCode("A".charCodeAt(0)+i)+'"></td><td><div class="removeBtn"></div></td></tr>');
+			$("div.setupPage").find("div.setupTable").find("tbody").append('<tr><td>'+(i+1)+'</td><td><input type="text" name="freq" value="'+((FPS)/(i+1)/2).toFixed(2)+'"></td><td><input type="text" name="text" value="'+String.fromCharCode("A".charCodeAt(0)+i)+'"></td><td><div class="removeBtn"></div></td></tr>');
 		}
+		document.querySelector('div.setupPage tfoot input[name="columns"]').value = 5;
 		$("div.setupPage").find(".removeBtn").click(function(){
 			$(this).parent("td").parent("tr").remove();		
 		});			
 	});
 
 	startRun = function() {
+		updateRefRateEst = false;
 		$("div.setupPage").addClass('displayNone');
 		
 		var boxOpts = {"showInfo":false, "showEdit":false, "flickerText":false, "fBackLoop":false
@@ -497,9 +541,10 @@ function setupStimulator(){
 		}
 		const v = document.querySelector('div.setupPage tfoot input[name="duration"]');
 		if (v){ options.duration = parseFloat( v.value ); }
+		const e = document.querySelector('div.setupPage tfoot input[name="columns"]');
+		if (e){ options.cols = parseInt( e.value ); }
 		
-		
-		creatBoxes(boxes, options);
+		createBoxes(boxes, options);
 		
 		return false;
 	}
@@ -519,6 +564,8 @@ function setupStimulator(){
 		}
 		loadSetupInfo(urlSetupInfo);
 		startRun();
+	} else {
+		estimateRefreshRate();
 	}
 }
 
