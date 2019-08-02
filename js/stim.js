@@ -259,7 +259,7 @@ class SSVEP{
 		}
 		// Bind button callbacks
 		$(this.setupUIElem).find(".addBtn").click(() => {
-			i = $(this.setupUIElem).find("div.setupTable").find("tbody").find("tr").size();
+			const i = $(this.setupUIElem).find("div.setupTable").find("tbody").find("tr").size();
 			$(this.setupUIElem).find("div.setupTable").find("tbody").append('<tr><td>'+(i+1)+'</td><td><input type="text" name="freq" value="'+(7+i)+'"></td><td><input type="text" name="text" value="'+String.fromCharCode("A".charCodeAt(0)+i)+'"></td><td><div class="removeBtn"></div></td></tr>');
 			$(this.setupUIElem).find(".removeBtn").click(function(){
 				$(this).parent("td").parent("tr").remove();		
