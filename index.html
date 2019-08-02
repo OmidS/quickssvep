@@ -13,10 +13,8 @@
 	<script type="text/javascript" src="js/stim.js"></script>
 </head>
 <body>
-	<div class="setupPage"></div>
-	<div class="stimulator displayNone"></div>
 	<script type="text/javascript">
-		setupStimulator();
+		SSVEPStim = new SSVEP();
 		// Check that service workers are registered
 		if ('serviceWorker' in navigator) {
 			window.addEventListener('load', function() {

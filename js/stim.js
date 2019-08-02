@@ -4,7 +4,8 @@ function saveTextToFile(text, fileName) {
 	saveAs(blob, fileName);
 }
 class flickerBox { 
-	constructor(i, freq, txt, opts){
+	constructor(parentElem, i, freq, txt, opts){
+		this.parentElem = parentElem;
 		this.id = i;
 		this.text = txt;
 		this.f = freq;
@@ -61,11 +62,11 @@ class flickerBox {
 		// Old DOM based animation method
 		// this.flickerIntervalID = setTimeout(() => { this.flicker() },this.hT);
 	}
-	setFlickerInterval = function(newHalfT) {
+	setFlickerInterval(newHalfT) {
 		window.clearInterval(this.flickerIntervalID);
 		this.flickerIntervalID = window.setInterval(this.flicker,newHalfT);
 	}
-	changeFreq = function(newf) {
+	changeFreq(newf) {
 		this.f = newf;
 		this.minf = this.f;
 		this.maxf = this.f;
@@ -73,46 +74,43 @@ class flickerBox {
 		this.cntf = 0;
 		this.eHT = 1/this.f/2*1000; // expected half period in ms
 	}
-	stop = function() {
+	stop() {
 		window.clearInterval(this.flickerIntervalID);
 		if (this.showInfo) {
 			window.clearInterval(this.updateIntervalID);
 		}
 	}
-	updateFreq = function() {
+	updateFreq() {
 		newf = $(this.optsdiv).children("input").val();
 		this.changeFreq(newf);
 	}
-	createDOM = function() {
-		var fboxcontainerdiv = document.createElement('div');
-		fboxcontainerdiv.className = 'fboxcontainer';
-		fboxcontainerdiv.setAttribute('id', this.id);
-		var fboxdiv = document.createElement('div');
-		fboxdiv.className = 'fbox';
-		fboxdiv.innerHTML = this.text;
-		var fboxdatadiv = document.createElement('div');
-		fboxdatadiv.className = 'fboxdata';
-		var fboxoptsdiv = document.createElement('div');
-		var fboxoptsdiv = document.createElement('div');
-		var fboxoptsdiv = document.createElement('div');
+	createDOM() {
+		this.containerElem = document.createElement('div');
+		this.containerElem.className = 'fboxcontainer';
+		this.containerElem.setAttribute('id', this.id);
+		this.boxElem = document.createElement('div');
+		this.boxElem.className = 'fbox';
+		this.boxElem.innerHTML = this.text;
+		this.containerElem.appendChild(this.boxElem);
+		this.dataElem = document.createElement('div');
+		this.dataElem.className = 'fboxdata';
+		if (this.showInfo) this.containerElem.appendChild(this.dataElem);
+		this.optionsElem = document.createElement('div');
+		this.optionsElem.className = 'fboxopts';	
+		if (this.showEdit) this.containerElem.appendChild(fboxoptsdiv);
 		var fboxoptsdivinp = document.createElement('input');
 		fboxoptsdivinp.value = this.f;
-		fboxoptsdiv.className = 'fboxopts';	
-		fboxoptsdiv.appendChild(fboxoptsdivinp);
-		fboxcontainerdiv.appendChild(fboxdiv);
-		if (this.showInfo) fboxcontainerdiv.appendChild(fboxdatadiv);
-		if (this.showEdit) fboxcontainerdiv.appendChild(fboxoptsdiv);
-		var stimulatordiv = $("div.stimulator")[0];
-		stimulatordiv.appendChild(fboxcontainerdiv);
+		this.optionsElem.appendChild(fboxoptsdivinp);
+		this.parentElem.appendChild(this.containerElem);
 	}
 	
-	resetminmax = function() {
+	resetminmax() {
 		this.minf = this.f;
 		this.maxf = this.f;
 		this.avgf = 0;
 		this.cntf = 0;
 	}  
-	trackFlickFreq = function( cTime ){
+	trackFlickFreq( cTime ){
 		if (this.isOn){
 			this.t3 = cTime;
 			if (this.showInfo) {
@@ -136,7 +134,7 @@ class flickerBox {
 		}
 	}
 	// Old DOM based animation method
-	flicker = function() {
+	flicker() {
 		let colorProperty;
 		if (this.flickerText==true) colorProperty = this.squarediv.style.color;
 		else colorProperty = this.squarediv.style.backgroundColor;
@@ -173,7 +171,7 @@ class flickerBox {
 		this.flickerIntervalID = setTimeout( ()=> { this.flicker(); },this.hT);
 	}
 	// New performant WebAnimationsAPI based method
-	updateState = function(cTime){
+	updateState(cTime){
 		const isOn = Math.floor(cTime / this.eHT)%2 == 0;
 		if (isOn) {
 			this.squarediv.style.opacity = 1;
@@ -189,79 +187,370 @@ class flickerBox {
 	}
 }
 
-function fixStyle(options){
-	if (options == undefined) { options = styleOptions; }
-	// Adjust style to fit the boxes appropriately
-	var winWidth = document.body.clientWidth;
-	var winHeight = window.innerHeight;
-	var boxWidth = Math.floor(winWidth/options.cols);
-	if (boxesCount < options.cols) boxWidth = Math.floor(winWidth/boxesCount);
-	var boxHeight = winHeight/Math.ceil(boxesCount/(winWidth/boxWidth));
-	$("div.fboxcontainer").css("width", boxWidth.toFixed(0)+"px");
-	$("div.fboxcontainer").css("height", boxHeight.toFixed(0)+"px");
-	
-	$("div.fbox").css("line-height", boxHeight.toFixed(0)+"px");
-	if (boxWidth < boxHeight) 
-		$("div.fbox").css("font-size", (boxWidth*options.fontS).toFixed(0)+"px");
-	else
-		$("div.fbox").css("font-size", (boxHeight*options.fontS).toFixed(0)+"px");
-	
-	if (options.fontB == true) $("div.fbox").css("font-weight", "bold");
-	else $("div.fbox").css("font-weight", "normal");
-	
-	/*
-	$("div.fbox").css("padding", function(index,value) {
-		var fontsize = $("div.fbox").eq(index).css("font-size");
-		return ((value-fontsize)/2).toFixed(0)+"px 0px";
-	});
-	*/
-}
+class SSVEP{
+	constructor(parentElem){
+		this.running = false;
 
-let updateRefRateEst = true;
-function createBoxes(boxInfos, options) {
-	$("div.stimulator").removeClass('displayNone');
-	// Creating some flicker boxes
-	var fBox = new Array();
-	for (i=0; i<boxInfos.length; i++) {
-		fBox[i] = new flickerBox(i, boxInfos[i].f, boxInfos[i].text, boxInfos[i].opts);	
+		this.FPS = 60;
+		this.boxesCount = 6;
+
+		this.parentElem = parentElem;
+		if ((this.parentElem === undefined) || !this.parentElem){ this.parentElem = document.body; }
+
+		this.createSetupUI();
+		this.createStimUI();
+		
+		const onWinResize = (e) => {
+			this.updateStimUISizes();
+		}
+		window.onresize = onWinResize;
+
+		this.activateSetupPage();
+		// Check window url for initial setup
+		var urlParams = new URLSearchParams(window.location.search);
+		if (urlParams.has('setup')){ // Setup info provided
+			const setupInfo = this.collectSetupInfo(); // Defaults
+			const urlSetupInfo = JSON.parse(decodeURIComponent(urlParams.get('setup')));
+			for (let k of Object.keys(urlSetupInfo)){
+				setupInfo[k] = urlSetupInfo[k];
+			}
+			this.loadSetupInfo(setupInfo);
+			this.startRun();
+		}
 	}
-	$("div.fboxopts").children("input").change(function(){
-		var fBoxId = $(this).parent("div.fboxopts").parent("div.fboxcontainer").attr("id");
-		fBox[fBoxId].updateFreq();
-	});
-	boxesCount = boxInfos.length;
-	//setTimeout(fixStyle, 1000);
-	$("div.stimulator").append('<div class="setupBtn"></div>');
 
-	onWinResize = function (e){
-		fixStyle(options);
+	createSetupUI(){
+		this.setupUIElem = document.createElement('div');
+		this.setupUIElem.classList.add('setupPage');
+		this.parentElem.appendChild(this.setupUIElem);
+
+		let footerHTML = `
+		<div class="fRateEst">Estimated FPS: ...</div>
+		<div class="warning">Note: The performance of this stimulator (the exact frequency of stimulations) highly depends on the machine and the web browser running it. It is not intended for academic use, rather it is a fast solution to test simple SSVEP setups. We sugest the latest version of <a href="https://www.google.com/intl/en/chrome/browser/">Google Chrome</a> for the best performance.</div>`;
+		footerHTML += '<div class="versionInfo">Quick SSVEP - Last updated: 2019.08.01 - By <a href="https://omidsani.com"> Omid Sani</a> - Code: <a href="https://github.com/OmidS/quickssvep" target="_blank">GitHub</a></div>';
+		var tableHTML = `<table><caption>Setup an SSVEP stimulator</caption><thead><tr><th>#</th><th>Frequency</th><th>Text</th><th></th></tr></thead><tbody></tbody>
+		<tfoot><tr><td></td><td></td><td></td><td><div class="addBtn"></div></td></tr>
+		<tr><td></td><td>Columns</td><td><input type="text" name="columns" value="3" placeholder="Columns"></td><td></td></tr>
+		<tr><td></td>
+		<td>Font Size: <select name="fontS"><option value="100" selected="selected">100%</option><option value="50">50%</option></select></td>
+		<td>
+		<!--<input type="checkbox" name="fBackLoop" checked="checked">Feedback Control Loop<br />-->
+		<input type="checkbox" name="avgF">Show Averages</td>
+		</td><td></td></tr><tr><td></td>
+		<td><input type="checkbox" name="fontB" checked="checked">Bold Font</td>
+		<td><input type="radio" name="flickerer" value="text" checked="checked">Flicker Texts<br/>
+		<input type="radio" name="flickerer" value="box">Flicker Boxes
+		</td></tr><tr><td></td>
+		<td><input type="text" name="duration" value="" placeholder="Duration (seconds)"></td>
+		<td></td><td></td></tr>
+		<tr><td></td>
+		<td><input type="submit" name="submit" value="" class="playBtn"><br/>Run</td>
+		<td><div class="saveBtn"></div><br/>Save This Setup <br />
+		<a class="autoLinkBtn" href="#">Get auto link</a>
+		<input type="text" name="autolink" value="" placeholder="" style="display:none;">
+		</td>
+		<td><div class="dlLogBtn"></div><br/>Logs (<a class="wipeLogBtn" href="#">Delete</a>)</td>
+		</tr></tfoot></table>`;
+		var preDefHTML = '<table><caption>Predefined models</caption><tbody><tr><td><div class="loadBtn"></div><br/>Load</td></tr><tr><td><div class="fullKBBtn"></div><br/>Full KB</td></tr></tbody></table>';
+
+		this.setupUIElem.innerHTML = '<form><div class="setupTable">'+tableHTML+'</div><div class="preDef">'+preDefHTML+'</div></form><div>'+footerHTML+'</div>';
+		for (let i=0; i<this.boxesCount; i++) {
+			$(this.setupUIElem).find("div.setupTable").find("tbody").append('<tr><td>'+(i+1)+'</td><td><input type="text" name="freq" value="'+(7+i)+'"></td><td><input type="text" name="text" value="'+String.fromCharCode("A".charCodeAt(0)+i)+'"></td><td><div class="removeBtn"></div></td></tr>');
+		}
+		// Bind button callbacks
+		$(this.setupUIElem).find(".addBtn").click(() => {
+			i = $(this.setupUIElem).find("div.setupTable").find("tbody").find("tr").size();
+			$(this.setupUIElem).find("div.setupTable").find("tbody").append('<tr><td>'+(i+1)+'</td><td><input type="text" name="freq" value="'+(7+i)+'"></td><td><input type="text" name="text" value="'+String.fromCharCode("A".charCodeAt(0)+i)+'"></td><td><div class="removeBtn"></div></td></tr>');
+			$(this.setupUIElem).find(".removeBtn").click(function(){
+				$(this).parent("td").parent("tr").remove();		
+			});	
+		});
+		$(this.setupUIElem).find(".removeBtn").click(function(){
+			$(this).parent("td").parent("tr").remove();		
+		});
+
+		$(this.setupUIElem).find(".saveBtn").click(()=>{
+			const setupInfo = this.collectSetupInfo();
+			localStorage.setItem("JSSSVEPSetup", JSON.stringify(setupInfo));
+		});
+		$(this.setupUIElem).find(".dlLogBtn").click(()=>{
+			let fileContent = JSON.stringify( JSON.parse(localStorage['SSVEPLog']), null, 2 );
+			saveTextToFile( fileContent );
+		});
+		$(this.setupUIElem).find(".autoLinkBtn").click((event)=>{
+			event.preventDefault();
+			const setupInfo = this.collectSetupInfo();
+			const arg = encodeURIComponent(JSON.stringify(setupInfo));
+			var urlParams = new URLSearchParams(window.location.search);
+			urlParams.set('setup', arg);
+			const url = window.location.href.split('#')[0].split('?')[0] + '?' + urlParams.toString();
+			const e = document.querySelector('div.setupPage tfoot input[name="autolink"]');
+			e.value = url;
+			e.style.display = 'block';
+			e.select();
+			document.execCommand("copy");
+			// document.querySelector('div.setupPage tfoot .autoLinkBtn').href = url;
+		});
+		$(this.setupUIElem).find(".wipeLogBtn").click(()=>{
+			let logsObj = JSON.parse(localStorage['SSVEPLog']);
+			if (logsObj.length > 0){
+				if (confirm('Are you sure you want to delete logs from '+logsObj.length+' run(s)?')){
+					localStorage['SSVEPLog'] = '[]';
+					console.log('Deleted '+ logsObj.length +' logs');
+				}
+			}
+		});
+
+		$(this.setupUIElem).find(".loadBtn").click(()=>{
+			var setupInfo = JSON.parse( localStorage["JSSSVEPSetup"]);
+			this.loadSetupInfo(setupInfo);
+		});
+	
+		$(this.setupUIElem).find(".fullKBBtn").click(()=>{
+			$(this.setupUIElem).find("div.setupTable").find("tbody").empty();
+			this.boxesCount = 26;
+			for (let i=0; i<this.boxesCount; i++) {
+				$(this.setupUIElem).find("div.setupTable").find("tbody").append('<tr><td>'+(i+1)+'</td><td><input type="text" name="freq" value="'+((this.FPS)/(i+1)/2).toFixed(2)+'"></td><td><input type="text" name="text" value="'+String.fromCharCode("A".charCodeAt(0)+i)+'"></td><td><div class="removeBtn"></div></td></tr>');
+			}
+			document.querySelector('div.setupPage tfoot input[name="columns"]').value = 5;
+			$(this.setupUIElem).find(".removeBtn").click(function(){
+				$(this).parent("td").parent("tr").remove();		
+			});			
+		});
+
+		this.setupUIElem.querySelector('form').onsubmit = (event) => {
+			event.preventDefault();
+			this.startRun();
+		};
 	}
-	window.onresize = onWinResize;
-	fixStyle(options);
-	window.scrollTo(0, 0);
+	createStimUI(){
+		this.stimUIElem = document.createElement('div');
+		this.stimUIElem.classList.add('stimulator');
+		this.parentElem.appendChild(this.stimUIElem);
+	}
 
-	let startTime = new Date();
-	let stopTime = null;
-	let eventTimesRelTo = 0;
-	stopStimulation = function() {
-		let stopTime = new Date();
-		var boxElems = Array.from( document.querySelectorAll('div.fboxcontainer') );
-		var logObject = {
+	activateSetupPage(){
+		this.running = false;
+		this.fBox = new Array();
+		$(this.stimUIElem).addClass("displayNone");
+		$(this.setupUIElem).removeClass("displayNone");		
+		this.estimateRefreshRate();
+	}
+
+	loadSetupInfo(setupInfo){
+		if (setupInfo===undefined || setupInfo===null) return;
+		if (setupInfo.ver != 1) return;
+		
+		// Setup buttons
+		$(this.setupUIElem).find("div.setupTable").find("tbody").find("tr").remove();
+		
+		this.boxesCount = setupInfo.boxes.length;
+		for (let i=0; i<this.boxesCount; i++) {
+			$(this.setupUIElem).find("div.setupTable").find("tbody").append('<tr><td>'+(i+1)+'</td><td><input type="text" name="freq" value="'+(setupInfo.boxes[i].f)+'"></td><td><input type="text" name="text" value="'+(setupInfo.boxes[i].text)+'"></td><td><div class="removeBtn"></div></td></tr>');
+		}
+	
+		$(this.setupUIElem).find(".removeBtn").click(function(){
+			$(this).parent("td").parent("tr").remove();		
+		});	
+		// Setup options
+		// $(this.setupUIElem).find("tfoot").find('input[name="fBackLoop"]')[0].checked = setupInfo.boxOpts.fBackLoop;
+		$(this.setupUIElem).find("tfoot").find('input[name="avgF"]')[0].checked = setupInfo.boxOpts.showInfo;
+		
+		$(this.setupUIElem).find("tfoot").find('input[name="flickerer"][value="text"]')[0].checked = setupInfo.boxOpts.flickerText;
+		$(this.setupUIElem).find("tfoot").find('input[name="flickerer"][value="box"]')[0].checked = !setupInfo.boxOpts.flickerText;
+		
+		$(this.setupUIElem).find("tfoot").find('input[name="fontB"]')[0].checked = setupInfo.options.fontB;
+		if (!isNaN(setupInfo.options.duration)) {
+			const v = document.querySelector('div.setupPage tfoot input[name="duration"]');
+			v.value = setupInfo.options.duration;
+		}
+		document.querySelector('div.setupPage tfoot input[name="columns"]').value = setupInfo.options.cols;
+		
+		var fontSSelect = $(this.setupUIElem).find("tfoot").find('select[name="fontS"]')[0];
+		fontSSelect.selectedIndex = 0;
+		if (setupInfo.options.fontS == 0.5) fontSSelect.selectedIndex = 1;		
+	}
+
+	estimateRefreshRate(){
+		let histFrameCnt = 61;
+		let histCnt = 0;
+		let firstFrameTime = null;
+		const requestFrame = (cTime) => {
+			histCnt++;
+			if (histCnt == 1) { firstFrameTime = cTime; };
+			if (histCnt == histFrameCnt) {
+				const FPSEst = (histCnt-1)/(cTime-firstFrameTime)*1000;
+				// console.log('[QuickSSVEP] Estimated framerate (Hz): ' + (histCnt-1) + ' frames in '+(cTime-firstFrameTime)+'ms => ' + FPSEst.toFixed(3) + ' FPS');
+				let reportStr = 'Estimated FPS: ' + FPSEst.toFixed(2) + ' → Reliable frequencies: ';
+				let freqs = [];
+				for (let i = 1; i<(0.5*(1+FPSEst)); i++){
+					freqs.push( (FPSEst/i/2).toFixed(2) + '' );
+				}
+				reportStr += freqs.join(', ');
+				const e = document.querySelector('.fRateEst');
+				e.innerHTML = reportStr;
+				if (histFrameCnt < 121){
+					histFrameCnt += 60;
+				} else {
+					histCnt = 0;
+					this.FPS = Math.round(FPSEst);
+				}
+			}
+			if (!this.running){
+				window.requestAnimationFrame(requestFrame);
+			}
+		}
+		// Start animation
+		window.requestAnimationFrame(requestFrame);
+	}
+
+	collectSetupInfo(){
+		var boxOpts = {"showInfo":false, "showEdit":false, "flickerText":false, "fBackLoop":false
+		, "infos":{"curF":true, "avgF":true, "rangeF":false, "curPer":false, "curDuty":false}};
+		
+		if ($(this.setupUIElem).find("tfoot").find('input[name="fBackLoop"]').is(':checked')) {
+			boxOpts.fBackLoop = true;
+		}
+		
+		if ($(this.setupUIElem).find("tfoot").find('input[name="avgF"]').is(':checked')) {
+			boxOpts.showInfo = true;
+		}
+		
+		if ($(this.setupUIElem).find("tfoot").find('input[name="flickerer"][value="text"]').is(':checked')) {
+			boxOpts.flickerText = true;
+		}
+		
+		var boxes = new Array();
+		$(this.setupUIElem).find("div.setupTable").find("tbody").find("tr").each((index, element)=>{
+			var freq = $(element).children("td").children('input[name="freq"]').val();
+			var text = $(element).children("td").children('input[name="text"]').val();
+			boxes[index] = { "f":freq , "text":text};
+		});
+		
+		var options = {"cols":3, "fontS":1, "fontB":false, "duration": parseFloat('Inf')};
+		if ($(this.setupUIElem).find("tfoot").find('input[name="fontB"]').is(':checked')) {
+			options.fontB = true;
+		}
+		if ($(this.setupUIElem).find("tfoot").find('select[name="fontS"]').val() == 50) {
+			options.fontS = 0.5;
+		}
+		const v = document.querySelector('div.setupPage tfoot input[name="duration"]');
+		if (v){ options.duration = parseFloat( v.value ); }
+		
+		const e = document.querySelector('div.setupPage tfoot input[name="columns"]');
+		if (e){ options.cols = parseInt( e.value ); }
+		
+		var setupInfo = {"ver": 1, "boxes": boxes, "boxOpts": boxOpts, "options": options};
+		return setupInfo;
+	}
+	
+	startRun() {
+		this.running = true;
+		$(this.setupUIElem).addClass('displayNone');
+		
+		var boxOpts = {"showInfo":false, "showEdit":false, "flickerText":false, "fBackLoop":false
+		, "infos":{"curF":true, "avgF":true, "rangeF":false, "curPer":false, "curDuty":false}};
+		
+		if ($(this.setupUIElem).find("tfoot").find('input[name="fBackLoop"]').is(':checked')) {
+			boxOpts.fBackLoop = true;
+		}
+		
+		if ($(this.setupUIElem).find("tfoot").find('input[name="avgF"]').is(':checked')) {
+			boxOpts.showInfo = true;
+		}
+		
+		if ($(this.setupUIElem).find("tfoot").find('input[name="flickerer"][value="text"]').is(':checked')) {
+			boxOpts.flickerText = true;
+		}
+		
+		var boxes = new Array();
+		$(this.setupUIElem).find("div.setupTable").find("tbody").find("tr").each((index, element)=>{
+			var freq = $(element).children("td").children('input[name="freq"]').val();
+			var text = $(element).children("td").children('input[name="text"]').val();
+			boxes[index] = { "f":freq , "text":text , "opts":boxOpts};
+		});
+	
+		var options = {"cols":3, "fontS":1, "fontB":false, "duration": parseFloat('Inf')};
+		if ($(this.setupUIElem).find("tfoot").find('input[name="fontB"]').is(':checked')) {
+			options.fontB = true;
+		}
+		if ($(this.setupUIElem).find("tfoot").find('select[name="fontS"]').val() == 50) {
+			options.fontS = 0.5;
+		}
+		const v = document.querySelector('div.setupPage tfoot input[name="duration"]');
+		if (v){ options.duration = parseFloat( v.value ); }
+		const e = document.querySelector('div.setupPage tfoot input[name="columns"]');
+		if (e){ options.cols = parseInt( e.value ); }
+		
+		this.startStimulation(boxes, options);
+		
+		return false;
+	}
+
+	startStimulation(boxInfos, options) {
+		$(this.stimUIElem).removeClass('displayNone');
+		// Creating some flicker boxes
+		this.fBox = new Array();
+		for (let i=0; i<boxInfos.length; i++) {
+			this.fBox[i] = new flickerBox(this.stimUIElem, i, boxInfos[i].f, boxInfos[i].text, boxInfos[i].opts);	
+			let e = this.fBox[i].optionsElem.querySelector('id');
+			if (e) {
+				$(e).change((ev)=>{
+					this.fBox[i].updateFreq();
+				});
+			}
+		}
+		this.boxesCount = boxInfos.length;
+		//setTimeout(fixStyle, 1000);
+		$(this.stimUIElem).append('<div class="setupBtn"></div>');
+	
+		this.stimOptions = options;
+		this.updateStimUISizes();
+		window.scrollTo(0, 0);
+	
+		$("div.setupBtn").click( ()=>{ this.stopStimulation(); });
+	
+		this.startTime = new Date();
+		this.stopTime = null;
+		this.eventTimesRelTo = performance.timing.navigationStart / 1000;
+		const animateFrame = (cTime) => {
+			// const cTime = performance.now(); // Expect input to be ~
+			// const absTime = performance.timing.navigationStart + cTime;
+			for (let i=0; i<this.fBox.length; i++) {
+				this.fBox[i].updateState(cTime);
+			}
+			if (this.stimOptions.duration){
+				if ((new Date().getTime() - this.startTime.getTime()) > (this.stimOptions.duration*1000)){
+					this.stopStimulation();
+					return;
+				}
+			}
+			if (this.stopTime === null) { // Not stopped yet
+				window.requestAnimationFrame(animateFrame);
+			}
+		}
+		// Start animation
+		window.requestAnimationFrame(animateFrame);
+	}
+
+	stopStimulation() {
+		this.stopTime = new Date();
+		let logObject = {
 			'runInfo': {
-				"startTime": startTime,
-				"stopTime": stopTime,
-				"boxCount": boxesCount,
-				"eventTimesRelTo": eventTimesRelTo
+				"startTime": this.startTime,
+				"stopTime": this.stopTime,
+				"boxCount": this.boxesCount,
+				"eventTimesRelTo": this.eventTimesRelTo,
+				"FPS": this.FPS
 			}
 		};
-		for (let i = 0; i<boxElems.length; i++){
-			let fBoxId = boxElems[i].getAttribute('id');
-			fBox[fBoxId].stop();
-			logObject[fBoxId] = {
-				"text": fBox[fBoxId].text,
-				"f": fBox[fBoxId].f,
-				"flickerText": fBox[fBoxId].flickerText,
-				"switchTimes": fBox[fBoxId].switchTimes
+		for (let i = 0; i<this.fBox.length; i++){
+			this.fBox[i].stop();
+			logObject[i] = {
+				"text": this.fBox[i].text,
+				"f": this.fBox[i].f,
+				"flickerText": this.fBox[i].flickerText,
+				"switchTimes": this.fBox[i].switchTimes
 			};
 		}
 		let prevLog = localStorage['SSVEPLog'];
@@ -277,297 +566,31 @@ function createBoxes(boxInfos, options) {
 		}
 		prevLog.push(logObject);
 		localStorage.setItem('SSVEPLog', JSON.stringify(prevLog));
-		fBox = new Array();
-		$("div.stimulator").empty();
-		$("div.stimulator").addClass("displayNone");
-		$("div.setupPage").removeClass("displayNone");		
-		updateRefRateEst = true;
-		window.removeEventListener('onresize', onWinResize);
+		$(this.stimUIElem).empty();
+		this.activateSetupPage();
 	}
-	$("div.setupBtn").click(stopStimulation);
 
-	eventTimesRelTo = performance.timing.navigationStart / 1000;
-	animateFrame = function(cTime){
-		// const cTime = performance.now(); // Expect input to be ~
-		// const absTime = performance.timing.navigationStart + cTime;
-		for (i=0; i<fBox.length; i++) {
-			fBox[i].updateState(cTime);
-		}
-		if (options.duration){
-			if ((new Date().getTime() - startTime.getTime()) > (options.duration*1000)){
-				stopStimulation();
-				return;
+	updateStimUISizes(){
+		// Adjust style to fit the boxes appropriately
+		var winWidth = document.body.clientWidth;
+		var winHeight = window.innerHeight;
+		if (this.running){
+			var boxWidth = Math.floor(winWidth/this.stimOptions.cols);
+			if (this.boxesCount < this.stimOptions.cols) boxWidth = Math.floor(winWidth/this.boxesCount);
+			var boxHeight = winHeight/Math.ceil(this.boxesCount/(winWidth/boxWidth));
+			for (let i = 0; i<this.fBox.length; i++){
+				$(this.fBox[i].containerElem).css("width", boxWidth.toFixed(0)+"px");
+				$(this.fBox[i].containerElem).css("height", boxHeight.toFixed(0)+"px");
+				
+				$(this.fBox[i].boxElem).css("line-height", boxHeight.toFixed(0)+"px");
+				if (boxWidth < boxHeight) 
+					$(this.fBox[i].boxElem).css("font-size", (boxWidth*this.stimOptions.fontS).toFixed(0)+"px");
+				else
+					$(this.fBox[i].boxElem).css("font-size", (boxHeight*this.stimOptions.fontS).toFixed(0)+"px");
+				
+				if (this.stimOptions.fontB == true) $(this.fBox[i].boxElem).css("font-weight", "bold");
+				else $(this.fBox[i].boxElem).css("font-weight", "normal");
 			}
 		}
-		if (stopTime === null) { // Not stopped yet
-			window.requestAnimationFrame(animateFrame);
-		}
-	}
-	// Start animation
-	window.requestAnimationFrame(animateFrame);
-}
-
-function setupStimulator(){
-	let FPS = 60;
-	if (typeof boxesCount==="undefined") boxesCount = 6;
-	var footerHTML = `
-	<div class="fRateEst"></div>
-	<div class="warning">Note: The performance of this stimulator (the exact frequency of stimulations) highly depends on the machine and the web browser running it. It is not intended for academic use, rather it is a fast solution to test simple SSVEP setups. We sugest the latest version of <a href="https://www.google.com/intl/en/chrome/browser/">Google Chrome</a> for the best performance.</div>`;
-	footerHTML += '<div class="versionInfo">Quick SSVEP - Last updated: 2019.08.01 - By <a href="https://omidsani.com"> Omid Sani</a> - Code: <a href="https://github.com/OmidS/quickssvep" target="_blank">GitHub</a></div>';
-	var createHTML = `<table><caption>Setup an SSVEP stimulator</caption><thead><tr><th>#</th><th>Frequency</th><th>Text</th><th></th></tr></thead><tbody></tbody>
-	<tfoot><tr><td></td><td></td><td></td><td><div class="addBtn"></div></td></tr>
-	<tr><td></td><td>Columns</td><td><input type="text" name="columns" value="3" placeholder="Columns"></td><td></td></tr>
-	<tr><td></td>
-	<td>Font Size: <select name="fontS"><option value="100" selected="selected">100%</option><option value="50">50%</option></select></td>
-	<td>
-	<!--<input type="checkbox" name="fBackLoop" checked="checked">Feedback Control Loop<br />-->
-	<input type="checkbox" name="avgF">Show Averages</td>
-	</td><td></td></tr><tr><td></td>
-	<td><input type="checkbox" name="fontB" checked="checked">Bold Font</td>
-	<td><input type="radio" name="flickerer" value="text" checked="checked">Flicker Texts<br/>
-	<input type="radio" name="flickerer" value="box">Flicker Boxes
-	</td></tr><tr><td></td>
-	<td><input type="text" name="duration" value="" placeholder="Duration (seconds)"></td>
-	<td></td><td></td></tr>
-	<tr><td></td>
-	<td><input type="submit" name="submit" value="" class="playBtn"><br/>Run</td>
-	<td><div class="saveBtn"></div><br/>Save This Setup <br />
-	<a class="autoLinkBtn" href="#">Get auto link</a>
-	<input type="text" name="autolink" value="" placeholder="" style="display:none;">
-	</td>
-	<td><div class="dlLogBtn"></div><br/>Logs (<a class="wipeLogBtn" href="#">Delete</a>)</td>
-	</tr></tfoot></table>`;
-	var preDefHTML = '<table><caption>Predefined models</caption><tbody><tr><td><div class="loadBtn"></div><br/>Load</td></tr><tr><td><div class="fullKBBtn"></div><br/>Full KB</td></tr></tbody></table>';
-	$("div.setupPage").append('<form><div class="setupTable">'+createHTML+'</div><div class="preDef">'+preDefHTML+'</div></form><div>'+footerHTML+'</div>');
-	for (i=0; i<boxesCount; i++) {
-		$("div.setupPage").find("div.setupTable").find("tbody").append('<tr><td>'+(i+1)+'</td><td><input type="text" name="freq" value="'+(7+i)+'"></td><td><input type="text" name="text" value="'+String.fromCharCode("A".charCodeAt(0)+i)+'"></td><td><div class="removeBtn"></div></td></tr>');
-	}
-	$("div.setupPage").find(".addBtn").click(function(){
-		i = $("div.setupPage").find("div.setupTable").find("tbody").find("tr").size();
-		$("div.setupPage").find("div.setupTable").find("tbody").append('<tr><td>'+(i+1)+'</td><td><input type="text" name="freq" value="'+(7+i)+'"></td><td><input type="text" name="text" value="'+String.fromCharCode("A".charCodeAt(0)+i)+'"></td><td><div class="removeBtn"></div></td></tr>');
-		$("div.setupPage").find(".removeBtn").click(function(){
-			$(this).parent("td").parent("tr").remove();		
-		});	
-	});
-	$("div.setupPage").find(".removeBtn").click(function(){
-		$(this).parent("td").parent("tr").remove();		
-	});
-
-	function estimateRefreshRate(){
-		finalFrameCnt = 601;
-		totalFrameInd = 0;
-		histFrameCnt = 61;
-		histCnt = 0;
-		firstFrameTime = null;
-		requestFrame = function(cTime){
-			totalFrameInd++;
-			histCnt++;
-			if (histCnt == 1) { firstFrameTime = cTime; };
-			if (histCnt == histFrameCnt) {
-				const FPSEst = (histCnt-1)/(cTime-firstFrameTime)*1000;
-				console.log('[QuickSSVEP] Estimated framerate (Hz): ' + (histCnt-1) + ' frames in '+(cTime-firstFrameTime)+'ms => ' + FPSEst.toFixed(3) + ' FPS');
-				let reportStr = 'Estimated FPS: ' + FPSEst.toFixed(2) + ' → Reliable frequencies: ';
-				let freqs = [];
-				for (let i = 1; i<(0.5*(1+FPSEst)); i++){
-					freqs.push( (FPSEst/i/2).toFixed(2) + '' );
-				}
-				reportStr += freqs.join(', ');
-				const e = document.querySelector('.fRateEst');
-				e.innerHTML = reportStr;
-				histCnt = 0;
-			}
-			if (updateRefRateEst && totalFrameInd < finalFrameCnt){
-				window.requestAnimationFrame(requestFrame);
-			}
-		}
-		// Start animation
-		window.requestAnimationFrame(requestFrame);
-	}
-
-	function collectSetupInfo(){
-		var boxOpts = {"showInfo":false, "showEdit":false, "flickerText":false, "fBackLoop":false
-		, "infos":{"curF":true, "avgF":true, "rangeF":false, "curPer":false, "curDuty":false}};
-		
-		if ($("div.setupPage").find("tfoot").find('input[name="fBackLoop"]').is(':checked')) {
-			boxOpts.fBackLoop = true;
-		}
-		
-		if ($("div.setupPage").find("tfoot").find('input[name="avgF"]').is(':checked')) {
-			boxOpts.showInfo = true;
-		}
-		
-		if ($("div.setupPage").find("tfoot").find('input[name="flickerer"][value="text"]').is(':checked')) {
-			boxOpts.flickerText = true;
-		}
-		
-		var boxes = new Array();
-		$("div.setupPage").find("div.setupTable").find("tbody").find("tr").each(function(index, element){
-			var freq = $(element).children("td").children('input[name="freq"]').val();
-			var text = $(element).children("td").children('input[name="text"]').val();
-			boxes[index] = { "f":freq , "text":text};
-		});
-		
-		var options = {"cols":3, "fontS":1, "fontB":false, "duration": parseFloat('Inf')};
-		if ($("div.setupPage").find("tfoot").find('input[name="fontB"]').is(':checked')) {
-			options.fontB = true;
-		}
-		if ($("div.setupPage").find("tfoot").find('select[name="fontS"]').val() == 50) {
-			options.fontS = 0.5;
-		}
-		const v = document.querySelector('div.setupPage tfoot input[name="duration"]');
-		if (v){ options.duration = parseFloat( v.value ); }
-		
-		const e = document.querySelector('div.setupPage tfoot input[name="columns"]');
-		if (e){ options.cols = parseInt( e.value ); }
-		
-		var setupInfo = {"ver": 1, "boxes": boxes, "boxOpts": boxOpts, "options": options};
-		return setupInfo;
-	}
-	$("div.setupPage").find(".saveBtn").click(function(){
-		const setupInfo = collectSetupInfo();
-		localStorage.setItem("JSSSVEPSetup", JSON.stringify(setupInfo));
-	});
-	$("div.setupPage").find(".dlLogBtn").click(function(){
-		let fileContent = JSON.stringify( JSON.parse(localStorage['SSVEPLog']), null, 2 );
-		saveTextToFile( fileContent );
-	});
-	$("div.setupPage").find(".autoLinkBtn").click(function(){
-		const setupInfo = collectSetupInfo();
-		const arg = encodeURIComponent(JSON.stringify(setupInfo));
-		var urlParams = new URLSearchParams(window.location.search);
-		urlParams.set('setup', arg);
-		const url = window.location.href.split('?')[0] + '?' + urlParams.toString();
-		const e = document.querySelector('div.setupPage tfoot input[name="autolink"]');
-		e.value = url;
-		e.style.display = 'block';
-		e.select();
-		document.execCommand("copy");
-		// document.querySelector('div.setupPage tfoot .autoLinkBtn').href = url;
-	});
-	$("div.setupPage").find(".wipeLogBtn").click(function(){
-		let logsObj = JSON.parse(localStorage['SSVEPLog']);
-		if (logsObj.length > 0){
-			if (confirm('Are you sure you want to delete logs from '+logsObj.length+' run(s)?')){
-				localStorage['SSVEPLog'] = '[]';
-				console.log('Deleted '+ logsObj.length +' logs');
-			}
-		}
-		
-	});
-	
-	function loadSetupInfo(setupInfo){
-		if (setupInfo===undefined || setupInfo===null) return;
-		if (setupInfo.ver != 1) return;
-		
-		// Setup buttons
-		$("div.setupPage").find("div.setupTable").find("tbody").find("tr").remove();
-		
-		boxesCount = setupInfo.boxes.length;
-		for (i=0; i<boxesCount; i++) {
-			$("div.setupPage").find("div.setupTable").find("tbody").append('<tr><td>'+(i+1)+'</td><td><input type="text" name="freq" value="'+(setupInfo.boxes[i].f)+'"></td><td><input type="text" name="text" value="'+(setupInfo.boxes[i].text)+'"></td><td><div class="removeBtn"></div></td></tr>');
-		}
-	
-		$("div.setupPage").find(".removeBtn").click(function(){
-			$(this).parent("td").parent("tr").remove();		
-		});	
-		// Setup options
-		// $("div.setupPage").find("tfoot").find('input[name="fBackLoop"]')[0].checked = setupInfo.boxOpts.fBackLoop;
-		$("div.setupPage").find("tfoot").find('input[name="avgF"]')[0].checked = setupInfo.boxOpts.showInfo;
-		
-		$("div.setupPage").find("tfoot").find('input[name="flickerer"][value="text"]')[0].checked = setupInfo.boxOpts.flickerText;
-		$("div.setupPage").find("tfoot").find('input[name="flickerer"][value="box"]')[0].checked = !setupInfo.boxOpts.flickerText;
-		
-		$("div.setupPage").find("tfoot").find('input[name="fontB"]')[0].checked = setupInfo.options.fontB;
-		if (!isNaN(setupInfo.options.duration)) {
-			const v = document.querySelector('div.setupPage tfoot input[name="duration"]');
-			v.value = setupInfo.options.duration;
-		}
-		document.querySelector('div.setupPage tfoot input[name="columns"]').value = options.cols;
-		
-		var fontSSelect = $("div.setupPage").find("tfoot").find('select[name="fontS"]')[0];
-		fontSSelect.selectedIndex = 0;
-		if (setupInfo.options.fontS == 0.5) fontSSelect.selectedIndex = 1;		
-	}
-	
-	$("div.setupPage").find(".loadBtn").click(function(){
-		var setupInfo = JSON.parse( localStorage["JSSSVEPSetup"]);
-		loadSetupInfo(setupInfo);
-	});
-
-	$("div.setupPage").find(".fullKBBtn").click(function(){
-		$("div.setupPage").find("div.setupTable").find("tbody").empty();
-		boxesCount = 26;
-		for (i=0; i<boxesCount; i++) {
-			$("div.setupPage").find("div.setupTable").find("tbody").append('<tr><td>'+(i+1)+'</td><td><input type="text" name="freq" value="'+((FPS)/(i+1)/2).toFixed(2)+'"></td><td><input type="text" name="text" value="'+String.fromCharCode("A".charCodeAt(0)+i)+'"></td><td><div class="removeBtn"></div></td></tr>');
-		}
-		document.querySelector('div.setupPage tfoot input[name="columns"]').value = 5;
-		$("div.setupPage").find(".removeBtn").click(function(){
-			$(this).parent("td").parent("tr").remove();		
-		});			
-	});
-
-	startRun = function() {
-		updateRefRateEst = false;
-		$("div.setupPage").addClass('displayNone');
-		
-		var boxOpts = {"showInfo":false, "showEdit":false, "flickerText":false, "fBackLoop":false
-		, "infos":{"curF":true, "avgF":true, "rangeF":false, "curPer":false, "curDuty":false}};
-		
-		if ($("div.setupPage").find("tfoot").find('input[name="fBackLoop"]').is(':checked')) {
-			boxOpts.fBackLoop = true;
-		}
-		
-		if ($("div.setupPage").find("tfoot").find('input[name="avgF"]').is(':checked')) {
-			boxOpts.showInfo = true;
-		}
-		
-		if ($("div.setupPage").find("tfoot").find('input[name="flickerer"][value="text"]').is(':checked')) {
-			boxOpts.flickerText = true;
-		}
-		
-		var boxes = new Array();
-		$("div.setupPage").find("div.setupTable").find("tbody").find("tr").each(function(index, element){
-			var freq = $(element).children("td").children('input[name="freq"]').val();
-			var text = $(element).children("td").children('input[name="text"]').val();
-			boxes[index] = { "f":freq , "text":text , "opts":boxOpts};
-		});
-	
-		var options = {"cols":3, "fontS":1, "fontB":false, "duration": parseFloat('Inf')};
-		if ($("div.setupPage").find("tfoot").find('input[name="fontB"]').is(':checked')) {
-			options.fontB = true;
-		}
-		if ($("div.setupPage").find("tfoot").find('select[name="fontS"]').val() == 50) {
-			options.fontS = 0.5;
-		}
-		const v = document.querySelector('div.setupPage tfoot input[name="duration"]');
-		if (v){ options.duration = parseFloat( v.value ); }
-		const e = document.querySelector('div.setupPage tfoot input[name="columns"]');
-		if (e){ options.cols = parseInt( e.value ); }
-		
-		createBoxes(boxes, options);
-		
-		return false;
-	}
-	
-	$("div.setupPage").find("form").submit(function(event) {
-		event.preventDefault();
-		startRun();
-	});
-
-	// Check window url for initial setup
-	var urlParams = new URLSearchParams(window.location.search);
-	if (urlParams.has('setup')){ // Setup info provided
-		const setupInfo = collectSetupInfo(); // Defaults
-		const urlSetupInfo = JSON.parse(decodeURIComponent(urlParams.get('setup')));
-		for (let k of Object.keys(urlSetupInfo)){
-			urlSetupInfo[k] = urlSetupInfo[k];
-		}
-		loadSetupInfo(urlSetupInfo);
-		startRun();
-	} else {
-		estimateRefreshRate();
 	}
 }
-
-// Store the function in a global property referenced by a string -> Good for minifying
-window['setupStimulator'] = setupStimulator;
