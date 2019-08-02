@@ -30,6 +30,7 @@ class MessageHandler {
 	postMessage(msg){
 		if (window.parent){
 			window.parent.postMessage(msg, '*');
+			console.log('[QuickSSVEP] posted "'+msg+'" to parent');
 		}
 	}
 }
