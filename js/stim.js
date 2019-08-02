@@ -228,7 +228,7 @@ class SSVEP{
 		<div class="fRateEst">Estimated FPS: ...</div>
 		<div class="warning">Note: The performance of this stimulator (the exact frequency of stimulations) highly depends on the machine and the web browser running it. It is not intended for academic use, rather it is a fast solution to test simple SSVEP setups. We sugest the latest version of <a href="https://www.google.com/intl/en/chrome/browser/">Google Chrome</a> for the best performance.</div>`;
 		footerHTML += '<div class="versionInfo">Quick SSVEP - Last updated: 2019.08.01 - By <a href="https://omidsani.com"> Omid Sani</a> - Code: <a href="https://github.com/OmidS/quickssvep" target="_blank">GitHub</a></div>';
-		var tableHTML = `<table><caption>Setup an SSVEP stimulator</caption><thead><tr><th>#</th><th>Frequency</th><th>Text</th><th></th></tr></thead><tbody></tbody>
+		var tableHTML = `<table><thead><tr><th>#</th><th>Frequency</th><th>Text</th><th></th></tr></thead><tbody></tbody>
 		<tfoot><tr><td></td><td></td><td></td><td><div class="addBtn"></div></td></tr>
 		<tr><td></td><td>Columns</td><td><input type="text" name="columns" value="3" placeholder="Columns"></td><td></td></tr>
 		<tr><td></td>
@@ -253,7 +253,7 @@ class SSVEP{
 		</tr></tfoot></table>`;
 		var preDefHTML = '<table><caption>Predefined models</caption><tbody><tr><td><div class="loadBtn"></div><br/>Load</td></tr><tr><td><div class="fullKBBtn"></div><br/>Full KB</td></tr></tbody></table>';
 
-		this.setupUIElem.innerHTML = '<form><div class="setupTable">'+tableHTML+'</div><div class="preDef">'+preDefHTML+'</div></form><div>'+footerHTML+'</div>';
+		this.setupUIElem.innerHTML = '<h2 class="header">QuickSSVEP</h2><form><div class="setupTable">'+tableHTML+'</div><div class="preDef">'+preDefHTML+'</div></form><div>'+footerHTML+'</div>';
 		for (let i=0; i<this.boxesCount; i++) {
 			$(this.setupUIElem).find("div.setupTable").find("tbody").append('<tr><td>'+(i+1)+'</td><td><input type="text" name="freq" value="'+(7+i)+'"></td><td><input type="text" name="text" value="'+String.fromCharCode("A".charCodeAt(0)+i)+'"></td><td><div class="removeBtn"></div></td></tr>');
 		}
