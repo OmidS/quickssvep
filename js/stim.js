@@ -45,10 +45,21 @@ class flickerBox {
 		this.switchTimes = [];
 		if (this.flickerText==true) this.squarediv.style.backgroundColor = "black";
 		else this.squarediv.style.backgroundColor = "white";
-		this.flickerIntervalID = setTimeout(() => { this.flicker() },this.hT);
 		if (this.showInfo) {
-			this.updateIntervalID = window.setInterval( () => { this.resetminmax() },60000);
+			this.updateIntervalID = window.setInterval( () => { this.resetminmax() },10000);
 		}
+
+		this.isOn = true;
+		if (this.flickerText==true) {
+			this.squarediv.style.color = 'white';
+			this.squarediv.style.backgroundColor = 'black';
+		} else {
+			this.squarediv.style.color = 'black';
+			this.squarediv.style.backgroundColor = 'white';
+		}
+
+		// Old DOM based animation method
+		// this.flickerIntervalID = setTimeout(() => { this.flicker() },this.hT);
 	}
 	setFlickerInterval = function(newHalfT) {
 		window.clearInterval(this.flickerIntervalID);
@@ -101,65 +112,90 @@ class flickerBox {
 		this.avgf = 0;
 		this.cntf = 0;
 	}  
+	trackFlickFreq = function( cTime ){
+		if (this.isOn){
+			this.t3 = cTime;
+			if (this.showInfo) {
+				var cf = 1000/(this.t3-this.t1); if (cf>this.maxf) this.maxf = cf; if (cf<this.minf) this.minf = cf;
+				this.avgf = (this.avgf*this.cntf + cf) / (this.cntf+1); this.cntf++;
+				if (!isFinite(this.avgf)) {this.minf = this.f;this.maxf = this.f;this.avgf = 0;this.cntf = 0;}
+				var infoHTML = "";
+				if (this.infos.curF) infoHTML += 'Freq: '+cf.toFixed(2)+'Hz<br />';
+				//infoHTML += '(Goal: '+f+'Hz) ';
+				//infoHTML += '(Freq: '+cf.toFixed(2)+'Hz) ';
+				//infoHTML += '(Err: '+PID.P.toFixed(2)+'ms) ';
+				if (this.infos.avgF) infoHTML += 'Avg: '+this.avgf.toFixed(2)+'Hz<br />';
+				if (this.infos.rangeF) infoHTML += 'Range: '+this.minf.toFixed(2)+' <  f  < '+this.maxf.toFixed(2)+'<br />';
+				if (this.infos.curPer) infoHTML += 'Period: '+(this.t3-this.t1)+'ms<br />';
+				if (this.infos.curDuty) infoHTML += 'Duty: '+((this.t2-this.t1)/(this.t3-this.t1)*100).toFixed(2)+'%';
+				this.datadiv.innerHTML = infoHTML;
+			}
+			this.t1 = this.t3;
+		} else {
+			this.t2 = this.t3;
+		}
+	}
+	// Old DOM based animation method
 	flicker = function() {
 		let colorProperty;
 		if (this.flickerText==true) colorProperty = this.squarediv.style.color;
 		else colorProperty = this.squarediv.style.backgroundColor;
 		if (colorProperty!="white") {
 			colorProperty = "white";
-			if (this.trackFreq) {
-				this.t3 = new Date().getTime();
-				if (this.showInfo) {
-					var cf = 1000/(this.t3-this.t1); if (cf>this.maxf) this.maxf = cf; if (cf<this.minf) this.minf = cf;
-					this.avgf = (this.avgf*this.cntf + cf) / (this.cntf+1); this.cntf++;
-					if (!isFinite(this.avgf)) {this.minf = this.f;this.maxf = this.f;this.avgf = 0;this.cntf = 0;}
-					var infoHTML = "";
-					if (this.infos.curF) infoHTML += 'Freq: '+cf.toFixed(2)+'Hz<br />';
-					//infoHTML += '(Goal: '+f+'Hz) ';
-					//infoHTML += '(Freq: '+cf.toFixed(2)+'Hz) ';
-					//infoHTML += '(Err: '+PID.P.toFixed(2)+'ms) ';
-					if (this.infos.avgF) infoHTML += 'Avg: '+this.avgf.toFixed(2)+'Hz<br />';
-					if (this.infos.rangeF) infoHTML += 'Range: '+this.minf.toFixed(2)+' <  f  < '+this.maxf.toFixed(2)+'<br />';
-					if (this.infos.curPer) infoHTML += 'Period: '+(this.t3-this.t1)+'ms<br />';
-					if (this.infos.curDuty) infoHTML += 'Duty: '+((this.t2-this.t1)/(this.t3-this.t1)*100).toFixed(2)+'%';
-					this.datadiv.innerHTML = infoHTML;
-				}
-				if (this.fBackLoop) { // Here we implement a feedback to finetune frequency
-					var lastError = this.PID.P;
-					var dt = (this.t3-this.t1)/1000;
-					var cHT = (this.t3-this.t1)/2; // current half period in ms
-					var error = this.eHT - cHT;
-					this.PID.P = error;
-					this.PID.I += error * dt;
-					if (dt>0) this.PID.D = (error - lastError) / dt;
-					else this.PID.D = 0;
-					this.hT += (this.PID.Kp * this.PID.P + this.PID.Ki * this.PID.I + this.PID.Kd * this.PID.D);
-					if (this.hT <= 0) this.hT = this.eHT;
-					//if ( (error > (ehT*0.01)) || (error < (-ehT*0.01) ) ) this.setFlickerInterval(chT - 0.01*error);
-					//if ( (error > (ehT*0.01)) || (error < (-ehT*0.01) ) ) hT = chT - 0.01*error;
-					//hT = cHT - 0.9*error;
-					//if ( (chT-ehT) > (+ehT*0.001) ) resetFlickerInterval(flickerInterval, hT, flickerFunction);
-					//if ( (chT-ehT) < (-ehT*0.001) ) resetFlickerInterval(flickerInterval, hT, flickerFunction);
-				}
-				this.t1 = new Date().getTime();
-			}
-		}else{
+			this.isOn = true;
+		} else {
 			colorProperty="black";
-			if (this.trackFreq) this.t2 = new Date().getTime();
+			this.isOn = false;
+		}
+		if (this.trackFreq) { 
+			this.trackFlickFreq( new Date().getTime() ); 
+			if (this.isOn && this.fBackLoop){ // Here we implement a feedback to finetune frequency
+				var lastError = this.PID.P;
+				var dt = (this.t3-this.t1)/1000;
+				var cHT = (this.t3-this.t1)/2; // current half period in ms
+				var error = this.eHT - cHT;
+				this.PID.P = error;
+				this.PID.I += error * dt;
+				if (dt>0) this.PID.D = (error - lastError) / dt;
+				else this.PID.D = 0;
+				this.hT += (this.PID.Kp * this.PID.P + this.PID.Ki * this.PID.I + this.PID.Kd * this.PID.D);
+				if (this.hT <= 0) this.hT = this.eHT;
+				//if ( (error > (ehT*0.01)) || (error < (-ehT*0.01) ) ) this.setFlickerInterval(chT - 0.01*error);
+				//if ( (error > (ehT*0.01)) || (error < (-ehT*0.01) ) ) hT = chT - 0.01*error;
+				//hT = cHT - 0.9*error;
+				//if ( (chT-ehT) > (+ehT*0.001) ) resetFlickerInterval(flickerInterval, hT, flickerFunction);
+				//if ( (chT-ehT) < (-ehT*0.001) ) resetFlickerInterval(flickerInterval, hT, flickerFunction);
+			}
 		}
 		if (this.flickerText==true) this.squarediv.style.color = colorProperty;
 		else this.squarediv.style.backgroundColor = colorProperty;
 		this.switchTimes.push( new Date() );
 		this.flickerIntervalID = setTimeout( ()=> { this.flicker(); },this.hT);
 	}
+	// New performant WebAnimationsAPI based method
+	updateState = function(cTime){
+		const isOn = Math.floor(cTime / this.eHT)%2 == 0;
+		if (isOn) {
+			this.squarediv.style.opacity = 1;
+		} else {
+			this.squarediv.style.opacity = 0;
+		}
+		// Book-keeping on state switches
+		if (isOn !== this.isOn){
+			this.trackFlickFreq( cTime );
+			this.switchTimes.push( cTime/1000 );
+		}
+		this.isOn = isOn;
+	}
 }
 
 function fixStyle(options){
+	if (options == undefined) { options = styleOptions; }
 	// Adjust style to fit the boxes appropriately
-	var winWidth = ($(window).width())*0.9;
-	var winHeight = ($(window).height())*0.9;
-	var boxWidth = winWidth/options.cols;
-	if (boxesCount < options.cols) boxWidth = winWidth/boxesCount;
+	var winWidth = document.body.clientWidth;
+	var winHeight = window.innerHeight;
+	var boxWidth = Math.floor(winWidth/options.cols);
+	if (boxesCount < options.cols) boxWidth = Math.floor(winWidth/boxesCount);
 	var boxHeight = winHeight/Math.ceil(boxesCount/(winWidth/boxWidth));
 	$("div.fboxcontainer").css("width", boxWidth.toFixed(0)+"px");
 	$("div.fboxcontainer").css("height", boxHeight.toFixed(0)+"px");
@@ -172,7 +208,6 @@ function fixStyle(options){
 	
 	if (options.fontB == true) $("div.fbox").css("font-weight", "bold");
 	else $("div.fbox").css("font-weight", "normal");
-	
 	
 	/*
 	$("div.fbox").css("padding", function(index,value) {
@@ -195,18 +230,27 @@ function creatBoxes(boxInfos, options)
 		fBox[fBoxId].updateFreq();
 	});
 	boxesCount = boxInfos.length;
-	fixStyle(options);
 	//setTimeout(fixStyle, 1000);
 	$("div.stimulator").append('<div class="setupBtn"></div>');
+
+	onWinResize = function (e){
+		fixStyle(options);
+	}
+	window.onresize = onWinResize;
+	fixStyle(options);
+
 	let startTime = new Date();
-	$("div.setupBtn").click(function(){
+	let stopTime = null;
+	let eventTimesRelTo = 0;
+	stopStimulation = function() {
 		let stopTime = new Date();
 		var boxElems = Array.from( document.querySelectorAll('div.fboxcontainer') );
 		var logObject = {
 			'runInfo': {
 				"startTime": startTime,
 				"stopTime": stopTime,
-				"boxCount": boxesCount
+				"boxCount": boxesCount,
+				"eventTimesRelTo": eventTimesRelTo
 			}
 		};
 		for (let i = 0; i<boxElems.length; i++){
@@ -236,14 +280,53 @@ function creatBoxes(boxInfos, options)
 		$("div.stimulator").empty();
 		$("div.stimulator").addClass("displayNone");
 		$("div.setupPage").removeClass("displayNone");		
-	});
+		window.removeEventListener('onresize', onWinResize);
+	}
+	$("div.setupBtn").click(stopStimulation);
+
+	eventTimesRelTo = performance.timing.navigationStart / 1000;
+	animateFrame = function(cTime){
+		// const cTime = performance.now(); // Expect input to be ~
+		// const absTime = performance.timing.navigationStart + cTime;
+		for (i=0; i<fBox.length; i++) {
+			fBox[i].updateState(cTime);
+		}
+		if (options.duration){
+			if ((new Date().getTime() - startTime.getTime()) > (options.duration*1000)){
+				stopStimulation();
+				return;
+			}
+		}
+		if (stopTime === null) { // Not stopped yet
+			window.requestAnimationFrame(animateFrame);
+		}
+	}
+	// Start animation
+	window.requestAnimationFrame(animateFrame);
 }
 
 function setupStimulator(){
 	if (typeof boxesCount==="undefined") boxesCount = 6;
 	var footerHTML = '<div>Note: The performance of this stimulator (the exact frequency of stimulations) highly depends on the machine and the web browser running it. It is not intended for academic use, rather it is a fast solution to test simple SSVEP setups. We sugest the latest version of <a href="https://www.google.com/intl/en/chrome/browser/">Google Chrome</a> for the best performance.</div>';
-	footerHTML += '<div class="versionInfo">Quick SSVEP - Last updated: 2019.06.28 - By <a href="https://omidsani.com"> Omid Sani</a></div>';
-	var createHTML = '<table><caption>Setup an SSVEP stimulator</caption><thead><tr><th>#</th><th>Frequency</th><th>Text</th><th></th></tr></thead><tbody></tbody><tfoot><tr><td></td><td></td><td></td><td><div class="addBtn"></div></td></tr><tr><td></td><td>Font Size: <select name="fontS"><option value="100" selected="selected">100%</option><option value="50">50%</option></select></td><td><input type="checkbox" name="fBackLoop" checked="checked">Feedback Control Loop<br /><input type="checkbox" name="avgF">Show Averages</td></td><td></td></tr><tr><td></td><td><input type="checkbox" name="fontB" checked="checked">Bold Font</td><td><input type="radio" name="flickerer" value="text" checked="checked">Flicker Texts<br/><input type="radio" name="flickerer" value="box">Flicker Boxes</td></tr><tr><td></td><td><input type="submit" name="submit" value="" class="playBtn"><br/>Run</td><td><div class="saveBtn"></div><br/>Save This Setup</td><td><div class="dlLogBtn"></div><br/>Logs (<a class="wipeLogBtn" href="#">Delete</a>)</td></tr></tfoot></table>';
+	footerHTML += '<div class="versionInfo">Quick SSVEP - Last updated: 2019.08.01 - By <a href="https://omidsani.com"> Omid Sani</a></div>';
+	var createHTML = `<table><caption>Setup an SSVEP stimulator</caption><thead><tr><th>#</th><th>Frequency</th><th>Text</th><th></th></tr></thead><tbody></tbody>
+	<tfoot><tr><td></td><td></td><td></td><td><div class="addBtn"></div></td></tr><tr><td></td>
+	<td>Font Size: <select name="fontS"><option value="100" selected="selected">100%</option><option value="50">50%</option></select></td>
+	<td>
+	<!--<input type="checkbox" name="fBackLoop" checked="checked">Feedback Control Loop<br />-->
+	<input type="checkbox" name="avgF">Show Averages</td>
+	</td><td></td></tr><tr><td></td>
+	<td><input type="checkbox" name="fontB" checked="checked">Bold Font</td>
+	<td><input type="radio" name="flickerer" value="text" checked="checked">Flicker Texts<br/>
+	<input type="radio" name="flickerer" value="box">Flicker Boxes
+	</td></tr><tr><td></td>
+	<td><input type="text" name="duration" value="" placeholder="Duration (seconds)"></td>
+	<td></td><td></td></tr>
+	<tr><td></td>
+	<td><input type="submit" name="submit" value="" class="playBtn"><br/>Run</td>
+	<td><div class="saveBtn"></div><br/>Save This Setup</td>
+	<td><div class="dlLogBtn"></div><br/>Logs (<a class="wipeLogBtn" href="#">Delete</a>)</td>
+	</tr></tfoot></table>`;
 	var preDefHTML = '<table><caption>Predefined models</caption><tbody><tr><td><div class="loadBtn"></div><br/>Load</td></tr><tr><td><div class="fullKBBtn"></div><br/>Full KB</td></tr></tbody></table>';
 	$("div.setupPage").append('<form><div class="setupTable">'+createHTML+'</div><div class="preDef">'+preDefHTML+'</div></form><div>'+footerHTML+'</div>');
 	for (i=0; i<boxesCount; i++) {
@@ -261,7 +344,7 @@ function setupStimulator(){
 	});
 	$("div.setupPage").find(".saveBtn").click(function(){
 		var boxOpts = {"showInfo":false, "showEdit":false, "flickerText":false, "fBackLoop":false
-		, "infos":{"curF":false, "avgF":true, "rangeF":false, "curPer":false, "curDuty":false}};
+		, "infos":{"curF":true, "avgF":true, "rangeF":false, "curPer":false, "curDuty":false}};
 		
 		if ($("div.setupPage").find("tfoot").find('input[name="fBackLoop"]').is(':checked')) {
 			boxOpts.fBackLoop = true;
@@ -282,13 +365,15 @@ function setupStimulator(){
 			boxes[index] = { "f":freq , "text":text};
 		});
 		
-		var options = {"cols":3, "fontS":1, "fontB":false};
+		var options = {"cols":3, "fontS":1, "fontB":false, "duration": parseFloat('Inf')};
 		if ($("div.setupPage").find("tfoot").find('input[name="fontB"]').is(':checked')) {
 			options.fontB = true;
 		}
 		if ($("div.setupPage").find("tfoot").find('select[name="fontS"]').val() == 50) {
 			options.fontS = 0.5;
 		}
+		const v = document.querySelector('div.setupPage tfoot input[name="duration"]');
+		if (v){ options.duration = parseFloat( v.value ); }
 		
 		var setupInfo = {"ver": 1, "boxes": boxes, "boxOpts": boxOpts, "options": options};
 		localStorage.setItem("JSSSVEPSetup", JSON.stringify(setupInfo));
@@ -324,13 +409,17 @@ function setupStimulator(){
 			$(this).parent("td").parent("tr").remove();		
 		});	
 		// Setup options
-		$("div.setupPage").find("tfoot").find('input[name="fBackLoop"]')[0].checked = setupInfo.boxOpts.fBackLoop;
+		// $("div.setupPage").find("tfoot").find('input[name="fBackLoop"]')[0].checked = setupInfo.boxOpts.fBackLoop;
 		$("div.setupPage").find("tfoot").find('input[name="avgF"]')[0].checked = setupInfo.boxOpts.showInfo;
 		
 		$("div.setupPage").find("tfoot").find('input[name="flickerer"][value="text"]')[0].checked = setupInfo.boxOpts.flickerText;
 		$("div.setupPage").find("tfoot").find('input[name="flickerer"][value="box"]')[0].checked = !setupInfo.boxOpts.flickerText;
 		
 		$("div.setupPage").find("tfoot").find('input[name="fontB"]')[0].checked = setupInfo.options.fontB;
+		if (!isNaN(setupInfo.options.duration)) {
+			const v = document.querySelector('div.setupPage tfoot input[name="duration"]');
+			v.value = setupInfo.options.duration;
+		}
 		
 		var fontSSelect = $("div.setupPage").find("tfoot").find('select[name="fontS"]')[0];
 		fontSSelect.selectedIndex = 0;
@@ -353,7 +442,7 @@ function setupStimulator(){
 		$("div.setupPage").addClass('displayNone');
 		
 		var boxOpts = {"showInfo":false, "showEdit":false, "flickerText":false, "fBackLoop":false
-		, "infos":{"curF":false, "avgF":true, "rangeF":false, "curPer":false, "curDuty":false}};
+		, "infos":{"curF":true, "avgF":true, "rangeF":false, "curPer":false, "curDuty":false}};
 		
 		if ($("div.setupPage").find("tfoot").find('input[name="fBackLoop"]').is(':checked')) {
 			boxOpts.fBackLoop = true;
@@ -374,13 +463,15 @@ function setupStimulator(){
 			boxes[index] = { "f":freq , "text":text , "opts":boxOpts};
 		});
 	
-		var options = {"cols":3, "fontS":1, "fontB":false};
+		var options = {"cols":3, "fontS":1, "fontB":false, "duration": parseFloat('Inf')};
 		if ($("div.setupPage").find("tfoot").find('input[name="fontB"]').is(':checked')) {
 			options.fontB = true;
 		}
 		if ($("div.setupPage").find("tfoot").find('select[name="fontS"]').val() == 50) {
 			options.fontS = 0.5;
 		}
+		const v = document.querySelector('div.setupPage tfoot input[name="duration"]');
+		if (v){ options.duration = parseFloat( v.value ); }
 		
 		
 		creatBoxes(boxes, options);
