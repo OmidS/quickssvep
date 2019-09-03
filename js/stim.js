@@ -224,6 +224,7 @@ class SSVEP{
 		this.logKey = 'SSVEPLog';
 		this.storage = new Storage();
 		this.running = false;
+		this.autoStarted = false;
 
 		this.messenger = new MessageHandler();
 
@@ -251,6 +252,7 @@ class SSVEP{
 				setupInfo[k] = urlSetupInfo[k];
 			}
 			this.loadSetupInfo(setupInfo);
+			this.autoStarted = true;
 			this.startRun();
 		}
 	}
@@ -369,6 +371,7 @@ class SSVEP{
 
 	activateSetupPage(){
 		this.running = false;
+		this.autoStarted = false;
 		this.fBox = new Array();
 		$(this.stimUIElem).addClass("displayNone");
 		$(this.setupUIElem).removeClass("displayNone");		
@@ -607,7 +610,11 @@ class SSVEP{
 		this.storage.saveObject(this.logKey, prevLog);
 		$(this.stimUIElem).empty();
 		this.messenger.postMessage('runStopped');
-		this.activateSetupPage();
+		if (this.autoStarted){
+			setTimeout( ()=> { this.activateSetupPage(); }, 1000); // In case opened in an iFrame, to allow time to be closed
+		} else {
+			this.activateSetupPage();
+		}
 	}
 
 	updateStimUISizes(){
